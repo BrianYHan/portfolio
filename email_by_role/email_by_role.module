@@ -7,7 +7,7 @@ function email_by_role_menu(){
 	$items = array();
 
 	$items['admin/structure/email-by-role'] = array(
-		'title' => t('Email By Role'),
+		'title' => t('Send Notification'),
 		'type' => MENU_NORMAL_ITEM,
 		'description' => t('Send Email by Role'),
 		'page callback' => 'drupal_get_form',
@@ -31,32 +31,37 @@ function email_by_role_permission(){
 
 function email_by_role_form($form, &$form_state){
 	GLOBAL $user;
-	drupal_set_title('Email By Role');
-  
+	drupal_set_title('Send Notification');
+    drupal_add_library('system', 'ui');
+  drupal_add_library('system', 'ui.dialog');
 
-	//An Array of options for ToR Admins to select the role to email
+	// An Array of options for ToR Admins to select the role to email
   $torAdminRoleOptions = array(
   	3 => 'Band Entrants',
   	5 => 'Equestrian Entrants',
   	7 => 'Float Entrants',
-  	9 => 'Media Entrants',
+    18 => 'Float Builders', // Entered as "Multiple Applicants"
+  	9 => 'Members of the Media',
+  	9999 => 'All',
   );
 
-  //An Array that outlines who each admin is emailing
+  // An Array that outlines who each admin is emailing
 	$torAdminTitleOptions = array(
   	4 => 'Band Entrants',
   	6 => 'Equestrian Entrants',
   	8 => 'Float Entrants',
-  	10 => 'Media Entrants',
+    8 => 'Float Builders',
+  	10 => 'Members of the Media',
+  	9999 => 'All',
   );
 
-	//Array of User Role IDs to pass into the query
+	// Array of User Role IDs to pass into the query
 	$userRoles = array(
 		4 => 3,
 		6 => 5,
-		8 => 7,
+		8 => array(7, 18),
 		10 => 9,
-		17 => array(3, 5, 7, 9),
+		17 => array(3, 5, 7, 9, 18),
 	);
 
 	$roleToEmail = '';
@@ -93,6 +98,7 @@ function email_by_role_form($form, &$form_state){
  			'#options' => $torAdminRoleOptions,
  			'#description' => t('To whom would you like to send your email?'),
  		);
+
   }else{
   	$form['roles_to_email_markup_text'] = array(
   		'#type' => 'item',
@@ -124,50 +130,87 @@ function email_by_role_form($form, &$form_state){
   	'#default_value' => '',
   );
 
-  $form['send_emails'] = array(
-  	'#value' => t('Send Email'),
-  	'#type' => 'submit',
+  $form[] = array(
+    '#type' => 'item',
+    '#markup' => t('<div id="confirmationDialog" style="display: none; z-index: 10000">Are you sure you wish to do this?</div>'),
   );
 
-	return $form;
+  $form['send_emails'] = array(
+  	'#value' => t('Send Email'),
+    '#prefix' => '<span class="submit-send">',
+    '#suffix' => '</span>',
+  	'#type' => 'submit',
+    // '#submit' => array('email_by_role_page_callback'),
+  );
+
+  return $form;
 }
 
 function email_by_role_form_submit(&$form, &$form_state){
 	global $user;
+	$uid = $user->uid;
 	$emailsArray = array();
-
+  // dsm($form_state);
 	//IF user is superAdmin or if user is ToRAdmin, they can email any role
-	if($user->uid == 1 || $user->roles == 17){
-		$query = 'SELECT DISTINCT(ur.uid) 
-	  	FROM {users_roles} AS ur
-	  	WHERE ur.rid IN (:rids)';
-		$result = db_query($query, array(':rids' => $form_state['values']['roles_to_email']));
-		$uids = $result->fetchCol();
+  // drupal_set_message(print_r($user->roles,1));
+  $userRoles = $user->roles;
+	if($user->uid == 1 || isset($userRoles[17])){
+		// If user chose all
+		if($form_state['values']['roles_to_email'] == 9999){
+			$users = entity_load('user');
+			foreach($users as $userID => $userInfo){
+				$emailsArray[$userID] = $userInfo->mail;
+ 			}
+		}else{
+			$query = 'SELECT DISTINCT(ur.uid) 
+		  	FROM {users_roles} AS ur
+		  	WHERE ur.rid IN (:rids)';
+			$result = db_query($query, array(':rids' => $form_state['values']['roles_to_email']));
+			$uids = $result->fetchCol();
 
-		foreach($uids as $userID => $userInfo){
-  		$loadedUser = user_load($userInfo);
-  		$emailsArray[$userInfo] = $loadedUser->mail;
-  	}
+			foreach($uids as $userID => $userInfo){
+	  		$loadedUser = user_load($userInfo);
+	  		$emailsArray[$userInfo] = $loadedUser->mail;
+	  	}	
+		}
   //If user is one of the other admins, the only emails they have access to are the roles for which they are admins to
 	}else{
-		$emailsArray = $form_state['values']['roles_to_email'];
+		$emailsArray[] = $form_state['values']['roles_to_email'];
 	}
 
 	$to = '';
+  $emailsArray[] = 'Andrea Fox <afox@tournamentofroses.com>';
+  $emailsArray[] = 'Heidi Hoff <hhoff@tournamentofroses.com>';
 	foreach($emailsArray as $uid => $emails){
-		$to .= $emails . ',';
-	}
-	//Remove last comma
-	$to = substr($to, 0, -1);
-	$subject = $form_state['values']['subject_of_emails'];
-	$message = $form_state['values']['message_of_email'];
+    if($emails){
+      $to = $emails;
+      //$to = 'adam@greatmatter.com';
 
-	//Set content type
-	$headers  = 'MIME-Version: 1.0' . "\r\n";
-	$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-	$headers .= 'From: Tournament of Roses Application Committee <info@tofr.co>' . "\r\n";
-	
-	mail($to, $subject, $message, $headers);
+     // Remove last comma
+
+      $subject = $form_state['values']['subject_of_emails'];
+      $message = str_replace("\r\n", "<br/>", $form_state['values']['message_of_email']);
+      
+
+      //Set content type
+      $headers = array();
+      $headers[] = 'From: "Tournament of Roses Parade Public Relations" <paradepr@tournamentofroses.com>';
+      $headers[] = 'MIME-Version: 1.0';
+      $headers[] = 'Content-type: text/html; charset=iso-8859-1';
+      //$headers[] = 'Bcc: Adam Weiss <adam+tofr@greatmatter.com>, Andrea Fox <afox@tournamentofroses.com>, Heidi Hoff <hhoff@tournamentofroses.com>';
+      
+      mail($to, $subject, $message, implode("\r\n", $headers));
+      // drupal_set_message(t('Successfully sent an email to @email', array(
+      //   '@email' => $emails,
+      // )));
+      watchdog('email_by_role', 'Message @subject sent to @email', array(
+        '@subject' => $subject,
+        '@email' => $to,
+      ), WATCHDOG_INFO);
+      //break;
+    }
+  }
+
 	if($user->uid == 1 || $user->roles == 17){
 		$roleName = user_role_load($form_state['values']['roles_to_email']);
 		$roleName = $roleName->name;
@@ -179,6 +222,18 @@ function email_by_role_form_submit(&$form, &$form_state){
 		$roleName = explode(' ', $roleName);
 		$roleName = $roleName[0];
 	}
-
-	drupal_set_message('Your email was successfully sent to all ' . $roleName . ' entrants!');
+	if($form_state['values']['roles_to_email'] == 9999 || 1== 1){
+			watchdog('email_by_role', 'Message sent by User[@user] E:@email to all users in system.', array(
+				'@user' => $user->uid,
+				'@email' => $user->mail, 
+			), WATCHDOG_INFO);
+		drupal_set_message('Your email was successfully sent to all users in the system.');
+	}else{
+			watchdog('email_by_role', 'Message sent by User[@user] E:@email to all users with the role of @sendees.', array(
+				'@user' => $user->uid,
+				'@email' => $user->mail, 
+				'@sendees' => $roleName,
+			), WATCHDOG_INFO);
+		drupal_set_message('Your email was successfully sent to all ' . $roleName . ' entrants!');
+	}
 }

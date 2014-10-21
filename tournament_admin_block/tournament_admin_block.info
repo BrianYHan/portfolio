@@ -1,7 +1,0 @@
-name = Custom Block for Admins Module
-description = Custom Block for Admins
-core = 7.x
-files[] = tournament_admin_block.module
-package = Content
-stylesheets[all][] = tournament_admin_block.css
-
