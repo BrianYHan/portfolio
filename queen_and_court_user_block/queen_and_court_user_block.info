@@ -1,0 +1,7 @@
+name = Custom Block for users Module
+description = Custom Block for User Menu
+core = 7.x
+files[] = queen_and_court_user_block.module
+package = Content
+stylesheets[all][] = queen_and_court_user_block.css
+

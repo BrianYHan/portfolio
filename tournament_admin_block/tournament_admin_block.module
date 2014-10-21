@@ -1,0 +1,145 @@
+<?php
+/**
+* Implements hook_block_info().
+*/
+function tournament_admin_block_block_info() {
+  $blocks = array();
+  $blocks['Admin Menu Block'] = array(
+    'info' => t('Admin Menu Block'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function tournament_admin_block_menu() {
+  $items = array();
+  $items['edit-application'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'tournament_admin_block_edit_redirect',
+    'access callback' => 'tournament_admin_block_edit_redirect_access',
+  );
+  return $items;
+}
+
+/**
+ * Callback to make the redirect happen.
+ */
+function tournament_admin_block_edit_redirect(){
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('uid', $GLOBALS['user']->uid)
+    ->propertyCondition('created', strtotime(date('Y') . '-12-31'), '<')
+    ->addMetaData('account', user_load(1)); // Run the query as user 1.
+  $result = $query->execute();
+  if(isset($result['node'])) {
+    $firstNode = $result['node'];
+    $firstNode = reset($firstNode);
+    drupal_goto('node/' . $firstNode->nid . '/edit');
+  }else{
+    drupal_goto('<front>');
+  }
+}
+
+/**
+ * Callback to determine access control
+ */
+function tournament_admin_block_edit_redirect_access(){
+  $account = user_load($GLOBALS['user']->uid);
+
+  if($GLOBALS['user']->uid == 1){
+    return true;
+  }
+
+  $roles = $account->roles;
+  if(isset($roles[17])){
+    return false;
+  }
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('uid', $GLOBALS['user']->uid)
+    ->propertyCondition('created', strtotime(date('Y') . '-12-31'), '<')
+    ->addMetaData('account', user_load(1)); // Run the query as user 1.
+  $result = $query->execute();
+  if(isset($result['node']) && count($result['node']) == 1) {
+    return true;
+  }else{
+    return false;
+  }
+}
+
+/**
+* Implements hook_block_view().
+*/
+function tournament_admin_block_block_view($delta = '') {
+
+  $block = array();
+  switch ($delta) {
+    case 'Admin Menu Block':
+      $block['subject'] = '';
+      $block['content'] = tournament_admin_block_callback();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Call back function for block 
+ */
+function tournament_admin_block_callback() {
+  global $user;
+  $uid = $user->uid;
+  $typeOfAdmin = '';
+  foreach($user->roles as $roleID => $roleName){
+    
+    if($roleID != 2){
+      $typeOfAdmin = explode(' ', $roleName);
+      $typeOfAdmin = strtolower($typeOfAdmin[0]);
+    }
+
+  }
+
+  $userSummaryLink = $typeOfAdmin . '/user-summary';
+  $applicationSummaryLink = $typeOfAdmin . '/revision-summary';
+  $applicationSummaryLink = 'applications';
+  $output = '<ul>';
+  
+  //$output .= '<li>' . l(t("Applicants"),  $userSummaryLink) . '</li>';
+  $output .= '<li>' . l(t("Applications"), $applicationSummaryLink) . '</li>';
+  $output .= '<li>' . l(t("Send Email"), "admin/structure/email-by-role") . '</li>';
+  $output .= '<li>' . l(t("Logout"), "user/logout") . '</li>';
+  $output .= '</ul>';
+
+  return $output;
+}
+
+/**
+ * Implements hook_node_access($node, $op, $account);
+ * Modify the permissions for a node--hide the "new application" option
+ */
+function tournament_admin_block_node_access($node, $op, $account){
+  $nodes = 0;
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('uid', $account->uid)
+    ->propertyCondition('created', strtotime(date('Y') . '-12-31'), '<')
+    ->addMetaData('account', user_load(1)); // Run the query as user 1.
+  $result = $query->execute();
+  if(isset($result['node'])) {
+    $nodes++;
+  }
+  $roles = $account->roles;
+  if($op == 'create' && !isset($roles[18]) && !isset($roles[17]) && $nodes > 0){
+    return NODE_ACCESS_DENY;
+  }
+}
+
+/**
+ * Implements hook_menu_alter
+ */
+function tournament_admin_block_menu_alter(&$items) {
+  // Example - disable the page at node/add
+  //$items['node/add']['access callback'] = FALSE;
+}

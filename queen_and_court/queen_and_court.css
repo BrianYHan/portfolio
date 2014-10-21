@@ -1,0 +1,315 @@
+/**
+* Admin Page
+*/
+#edit-queen-and-court-export-button{
+	display: block;
+	text-decoration: none;
+	font-size: 15px;
+	text-align: center;
+	background-color: #eee;
+	padding: 5px;
+	color: #000;
+	margin: auto;
+	width: 281px;
+	height: 35px;
+	border-radius: 3px;
+	border: 1px solid #d3d3d3;
+}
+
+.page-qac h2.pageTitle{
+	display: none;
+}
+
+.page-qac-settings #block-queen-and-court-quick-jump-block{
+	display: none;
+}
+/**
+* Queen and Court Master Judge Rank Page
+*/
+.page-qac table.sticky-table{
+	width: 100%;
+	margin: auto;
+	width: 100%;
+	table-layout: fixed;
+	color: #333;
+}
+
+.page-qac-master table tbody{
+	border-top: 4px solid #888;
+	border-bottom: 4px solid #888;
+}
+.page-qac-master tbody tr {
+	border-bottom: none;
+}
+.page-qac-master tbody tr th,
+.page-qac-master thead tr th{
+	text-align: center;
+	text-transform: uppercase;
+
+}
+
+.page-qac-master tbody td{
+	text-align: center;
+}
+
+.page-qac-master table tr.odd{
+	background-color: #eee;
+}
+
+.page-qac-master table tr.even{
+	background-color: #fff;
+}
+
+.page-qac-master table tbody tr td:first-child{
+	font-weight: bolder;
+}
+
+a.edit-vote-link{
+	display: inline-block;
+	margin-left: 5px;
+}
+/**
+* Ipad App Ranker Page
+*/
+.page-qac .region-content{
+	min-width: 700px !important;
+	position: relative;
+}
+
+.page-qac #block-block-3{
+	top: 0;
+	display: inline-block;
+	float: left;
+	margin-right: -100%;
+	position: absolute;
+	z-index: 50000;
+}
+
+.page-qac #block-block-3 p{
+	font-size: 11px;
+}
+
+.page-qac h1.entrant-title{
+	font-weight: lighter;
+	font-size: 60px;
+	margin-bottom:.40em;
+} 
+.page-qac #queen-and-court-form{
+	position: relative;
+}
+
+#edit-queen-rankings{
+	display: none;
+}
+
+#edit-queen-rankings-cover{
+	height: 100px;
+	margin-bottom: 30px;
+}
+.queen-ranking-cover{
+	cursor: pointer;
+	border-radius:20px;
+	padding: 10px 0px 10px 0px;
+	width: 13.5%;
+	margin: 0px 1% 0px 1%;
+	float: left;
+	text-align: center;
+	color: #fff;
+	font-size: 35pt;
+	border: 3px solid #ffffff;
+}
+
+.queen-ranking-cover.selected{
+	border: 3px solid #000000;
+}
+
+.page-qac #RC{
+	background-color: #333333;
+}
+.page-qac #DQ{
+	background-color: #4d2b38;
+}
+
+.page-qac #zero{
+	background-color: #420e23;
+}
+.page-qac #plusone{
+	background-color: #662a42;
+}
+
+.page-qac #plustwo{
+	background-color: #b36484;
+}
+
+.page-qac #plusthree{
+	background-color: #b37990;
+}
+.page-qac option{
+}
+
+.page-qac #RC.selected,
+.page-qac #DQ.selected,
+.page-qac #zero.selected,
+.page-qac #plusone.selected,
+.page-qac #plustwo.selected,
+.page-qac #plusthree.selected{
+	background-color: #008c4f;
+}
+
+.page-qac .form-item{
+	clear: left;
+}
+
+.page-qac .form-item-queen-ids{
+	width: 77%;
+	margin: auto auto 30px auto;
+}
+
+.page-qac .form-item-queen-ids label{
+	float: left;
+	width: 48%;
+	font-size: 50px;
+	font-weight: lighter;
+	margin-top:10pt;
+	text-align:right;
+}
+
+
+.page-qac .form-item-queen-ids select{
+	width: 40%;
+	min-width:180px;
+	font-size: 50px;
+	font-weight: lighter;
+	color: #7C7C7C;
+	border: none;
+	background-color: #eee;
+}
+
+.page-qac .form-item-queen-rankings{
+
+}
+
+
+.page-qac .form-item-queen-rankings label{
+	text-align: center;
+	font-weight: lighter;
+	font-size: 25px;
+}
+
+
+.page-qac .form-item-queen-rankings .form-radios{
+
+}
+
+.page-qac .form-item-queen-rankings .form-radios .form-item{
+	display: inline-block;
+	width: 14%;
+	margin: 0px 1% 0px 1%;
+}
+
+.page-qac .form-item-queen-rankings .form-radios .form-item input{
+	display: block;
+	margin:auto
+}
+
+
+.page-qac .form-item-queen-rankings .form-radios .form-item label{
+	display: block;
+	margin:auto;
+	clear: left;
+}
+
+.page-qac .form-item-queen-special-notes label{
+	text-align: center;
+	font-weight: lighter;
+	font-size: 30px;
+}
+
+.grippie{
+	display: none;
+}
+
+.page-qac .form-item-queen-special-notes{
+	padding-bottom: 100px;
+}
+.page-qac .form-item-queen-special-notes	textarea{
+	border-radius: 20px;
+	height: 225px;
+	font-size: 25px;
+	padding: 2%;
+}
+
+.page-qac #edit-previous-submit{
+	background-color: #4d2b38;
+/*	background-color: rgba(77, 43, 56, .9);
+*/	color: #ffffff;
+	border: none;
+	font-size: 50px;
+	padding: 10px 20px 10px 20px;
+	font-weight: lighter;
+	width: 40%;
+	text-align: center;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+.page-qac #edit-next-submit{
+	background-color: #b37990;
+/*	background-color: rgba(179, 121, 144, .9);
+*/	color: #ffffff;
+	border: none;
+	font-size: 50px;
+	padding: 10px 20px 10px 20px;
+	font-weight: lighter;
+	width: 40%;
+	text-align: center;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+/**
+ * Quick jump
+ */
+.page-qac #queen-and-court-quickjump-form .form-item-entrant{
+	display: inline-block;
+}
+
+.page-qac #queen-and-court-quickjump-form #edit-submit{
+	background-color: #b37990;
+/*	background-color: rgba(179, 121, 144, .9);
+*/	color: #ffffff;
+	border: none;
+	padding: 2px 5px 2px 5px;
+	text-align: center;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+@media screen and (min-width: 768)(max-width: 959px){
+	.page-qac .region-header,
+	.page-qac .region-menubar{
+		display: none;
+	}
+	.page-qac .mainContainer{
+	  min-width: 768px;
+	}
+}
+
+.page-qac .description{
+	font-size: 18px;
+}
+
+.page-qac{
+	background-image: url('./images/rose_logo-01.svg');
+	background-repeat: no-repeat;
+	background-position: top right;
+}

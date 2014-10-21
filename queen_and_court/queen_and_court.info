@@ -1,0 +1,9 @@
+name = Queen and Court Reviewing Module
+description = Queen and Court Reviewing System
+core = 7.x
+files[] = queen_and_court.module
+package = Content
+stylesheets[all][] = queen_and_court.css
+scripts[] = queen_and_court.js
+dependencies[] = entity
+

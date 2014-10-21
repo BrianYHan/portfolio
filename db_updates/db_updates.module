@@ -1,0 +1,488 @@
+<?php
+  /**
+   * Implements hook_menu().
+   **/
+  function db_updates_menu() {
+    $items = array();
+
+    //Define a settings page.
+    $items['admin/config/services/db_updater'] = array(
+      'type' => MENU_NORMAL_ITEM,
+      'title' => 'Database Updater',
+      'description' => 'Configure the settings for the Database Connection integration.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('db_updates_admin_form'),
+      'access arguments' => array('administer site configuration'),
+    );
+
+    // $items['db_updates'] = array(
+    //   'type' => MENU_CALLBACK,
+    //   'title' => 'DB Update Sync',
+    //   'page callback' => 'db_updates_method',
+    //   'access callback' => TRUE,
+    // );
+
+    return $items;
+  }
+
+
+  /**
+   * DB Form Callback 
+   **/
+  function db_updates_admin_form(){
+    $form = array();
+    
+    $form['db_update_information'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Database Updater Information'),
+      '#description' => t('This module syncs a remote DB to the Drupal DB.'),
+    );
+    
+    $form['db_update_information']['db_update_intervals'] = array(
+      '#type' => 'select',
+      '#title' => t('Database Update Interval Length'),
+      '#options' => array(
+        0 => t('Every 10 minutes'),
+        1 => t('Every 30 minutes'),
+        2 => t('Every hour'),
+        3 => t('Every day'),
+      ),
+    );
+    
+    $form['db_update_information']['db_update_db_host'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Database Hostname'),
+      '#default_value' => variable_get('db_update_db_host', 'greatwestlease.db.8417190.hostedresource.com'),
+    );
+
+    $form['db_update_information']['db_update_db_username'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Database Username'),
+      '#default_value' => variable_get('db_update_db_username', 'greatwestlease'),
+    );
+
+    $form['db_update_information']['db_update_db_password'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Database Password'),
+      '#default_value' => variable_get('db_update_db_password', 'y12dj4ZjKJZzjS'),
+    );
+
+    $form['db_update_information']['db_update_db_name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Database Password'),
+      '#default_value' => variable_get('db_update_db_name', 'greatwestlease'),
+    );
+
+    $form['db_update_information']['db_update_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Update DB now'),
+      '#submit' => array('db_updates_batch_start'),
+    );
+
+    $form['db_update_information']['db_delete_duplicates_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete Duplicates'),
+      '#submit' => array('db_updates_delete_duplicate_trailers'),
+    );
+
+    $form['db_update_information']['db_delete_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete ALL TRAILERS'),
+      '#submit' => array('db_updates_delete_all_trailers'),
+    );
+    //db_updates_setup_databases();
+
+    return system_settings_form($form);
+  }
+
+  function db_updates_delete_all_trailers(){
+    // Erase all with bulk detete
+    $deleteNodeQuery = new EntityFieldQuery();
+    $deleteNodeQueryResult = $deleteNodeQuery->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'trailer')
+      ->execute();
+    foreach ($deleteNodeQueryResult['node'] as $nodeToDelete) {
+      node_delete($nodeToDelete->nid);
+    }
+    drupal_set_message(t('All trailers deleted successfully.'));
+    watchdog('db_updates', t('All trailers deleted'));
+  }
+
+  /**
+   * Callback to delete duplicates.
+   */
+  function db_updates_delete_duplicate_trailers(){
+    $trailerArray = array();
+    $deleteNodeQuery = new EntityFieldQuery();
+    $deleteNodeQueryResult = $deleteNodeQuery->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'trailer')
+      ->execute();
+    
+    $i = 0;
+    foreach ($deleteNodeQueryResult['node'] as $nodeToDelete) {
+      $node = node_load($nodeToDelete->nid);
+      $title = trim($node->title);
+      if(in_array($title, $trailerArray)){
+        node_delete($nodeToDelete->nid);
+      }else{
+        $trailerArray[] = $title;
+      }
+    }
+
+    drupal_set_message(t('All duplicate trailers deleted successfully.'));
+    watchdog('db_updates', t('All duplicate trailers deleted'));
+  }
+
+  /**
+   * Callback for the databases synch.
+   **/
+  function db_updates_method(&$context){
+    //Set default timezone
+    date_default_timezone_set('America/Los_Angeles');
+
+    // Database Connection Variables
+    $databaseName = variable_get('db_update_db_name', 'greatwestlease');
+    $username = variable_get('db_update_db_username', 'greatwestlease');
+    $password = variable_get('db_update_db_password', 'y12dj4ZjKJZzjS');
+    $host =  variable_get('db_update_db_host', 'greatwestlease.db.8417190.hostedresource.com');
+    $connection = mssql_connect($host, $username, $password) or die("Cannot Connect to server");
+    $db = mssql_select_db($databaseName, $connection) or die("Cannot select DB");
+
+    $query = "SELECT ci.ItemID
+      FROM CI_Item ci
+      INNER JOIN IM_ItemWarehouse iiw ON ci.ItemCode = iiw.ItemCode
+      INNER JOIN IM_Warehouse iw ON iiw.WarehouseCode = iw.WarehouseCode
+      WHERE iiw.QuantityOnHand > 0 AND ci.ItemCode IS NOT NULL AND ci.ItemCode <> '' AND iiw.WarehouseCode IS NOT NULL AND iiw.WarehouseCode <> 'ZZZ'
+      ORDER BY iiw.DateUpdated DESC";
+    $result = mssql_query($query) or die('Query Error: ' . mssql_get_last_message());
+    db_set_active();
+    $numRows = mssql_num_rows($result);
+
+    $limit = 5;
+
+    // Because SQL doesn't easily support paging, we're going to make quasi-paging right here.
+    $incrementArray = array();
+    while($row = mssql_fetch_array($result)){
+      $incrementArray[] = '\'' . $row['ItemID'] . '\'';
+    }
+
+    // Batch information
+    if (!isset($context['sandbox']['progress'])) {
+      $context['sandbox']['progress'] = 0;
+      $context['sandbox']['max'] = $numRows;
+      //$context['sandbox']['max'] = 20;
+    }
+
+    // Remove the array items that we don't want.
+    $sliceArray = array_slice($incrementArray, $context['sandbox']['progress'], $limit);
+    $slice = implode(',', $sliceArray);
+
+    // Query
+    $databaseName = variable_get('db_update_db_name', 'greatwestlease');
+    $username = variable_get('db_update_db_username', 'greatwestlease');
+    $password = variable_get('db_update_db_password', 'y12dj4ZjKJZzjS');
+    $host =  variable_get('db_update_db_host', 'greatwestlease.db.8417190.hostedresource.com');
+    $connection = mssql_connect($host, $username, $password) or die("Cannot Connect to server");
+    $db = mssql_select_db($databaseName, $connection) or die("Cannot select DB");
+    $query = "SELECT TOP $limit CAST(ci.ItemID AS VARCHAR(30)) AS ItemID, 
+      CAST(ci.ItemCode AS VARCHAR(30)) AS ItemCode, 
+      CAST(ci.ItemCodeDesc AS VARCHAR(30)) AS ItemCodeDesc,
+      CAST(ci.TotalQuantityOnHand AS VARCHAR(30)) AS TotalQuantityOnHand,    
+      CAST(ci.UDF_ADDITIONAL_EQUIPMENT AS VARCHAR(255)) AS UDF_ADDITIONAL_EQUIPMENT,
+      CAST(ci.InactiveItem AS VARCHAR(1)) AS InactiveItem,    
+      CAST(ci.UDF_BODY_SHELL_THICKNESS AS VARCHAR(30)) AS UDF_BODY_SHELL_THICKNESS,    
+      CAST(ci.UDF_BRAKES AS VARCHAR(30)) AS UDF_BRAKES,
+      CAST(ci.UDF_COLOR AS VARCHAR(30)) AS UDF_COLOR,    
+      CAST(ci.UDF_CONSTRUCTION AS VARCHAR(30)) AS UDF_CONSTRUCTION,
+      CAST(ci.UDF_DOOR_TYPE AS VARCHAR(30)) AS UDF_DOOR_TYPE,    
+      CAST(ci.UDF_ENGINE AS VARCHAR(30)) AS UDF_ENGINE,
+      CAST(ci.UDF_EXHAUST AS VARCHAR(30)) AS UDF_EXHAUST,    
+      CAST(ci.UDF_5TH_WHEEL AS VARCHAR(30)) AS UDF_5TH_WHEEL,
+      CAST(ci.UDF_FLOOR_TYPE AS VARCHAR(30)) AS UDF_FLOOR_TYPE,
+      CAST(ci.UDF_GATE_TYPE AS VARCHAR(30)) AS UDF_GATE_TYPE,    
+      CAST(ci.UDF_GEAR_RATIO AS VARCHAR(30)) AS UDF_GEAR_RATIO,
+      CAST(ci.UDF_INSIDE_HEIGHT AS VARCHAR(30)) AS UDF_INSIDE_HEIGHT,    
+      CAST(ci.UDF_INTERIOR AS VARCHAR(30)) AS UDF_INTERIOR,
+      CAST(ci.UDF_KING_PIN AS VARCHAR(30)) AS UDF_KING_PIN,    
+      CAST(ci.UDF_LENGTH AS VARCHAR(30)) AS UDF_LENGTH,
+      CAST(ci.UDF_MAKE AS VARCHAR(30)) AS UDF_MAKE,    
+      CAST(ci.UDF_MILES AS VARCHAR(30)) AS UDF_MILES,
+      CAST(ci.UDF_MODEL AS VARCHAR(30)) AS UDF_MODEL,    
+      CAST(ci.UDF_NEW_USED AS VARCHAR(30)) AS UDF_NEW_USED,
+      CAST(ci.UDF_OUTSIDE_HEIGHT AS VARCHAR(30)) AS UDF_OUTSIDE_HEIGHT,    
+      CAST(ci.UDF_REEFER_TYPE AS VARCHAR(30)) AS UDF_REEFER_TYPE,    
+      CAST(ci.UDF_ROOF_TYPE AS VARCHAR(30)) AS UDF_ROOF_TYPE,
+      CAST(ci.UDF_SIDE_HEIGHT AS VARCHAR(30)) AS UDF_SIDE_HEIGHT,    
+      CAST(ci.UDF_SLEEPER AS VARCHAR(30)) AS UDF_SLEEPER,
+      CAST(ci.UDF_SUSPENSION_LOCATION AS VARCHAR(31)) AS UDF_SUSPENSION_LOCATION,    
+      CAST(ci.UDF_SUSPENSION_TYPE AS VARCHAR(30)) AS UDF_SUSPENSION_TYPE,
+      CAST(ci.UDF_TIRE_SIZE AS VARCHAR(30)) AS UDF_TIRE_SIZE,    
+      CAST(ci.UDF_TRAILER_TYPE AS VARCHAR(30)) AS UDF_TRAILER_TYPE,
+      CAST(ci.UDF_TRANSMISSION AS VARCHAR(30)) AS UDF_TRANSMISSION,    
+      CAST(ci.UDF_VIN_NUMBER AS VARCHAR(30)) AS UDF_VIN_NUMBER,
+      CAST(ci.UDF_WHEEL_BASE AS VARCHAR(30)) AS UDF_WHEEL_BASE,    
+      CAST(ci.UDF_WHEEL_CONSTRUCTION AS VARCHAR(30)) AS UDF_WHEEL_CONSTRUCTION,
+      CAST(ci.UDF_WHEEL_TYPE AS VARCHAR(30)) AS UDF_WHEEL_TYPE,    
+      CAST(ci.UDF_WIDTH AS VARCHAR(30)) AS UDF_WIDTH,
+      CAST(ci.UDF_YEAR AS VARCHAR(30)) AS UDF_YEAR,
+      CAST(ci.UDF_GOOSENECK AS VARCHAR(30)) AS UDF_GOOSENECK,    
+      CAST(ci.UDF_PICTURE1 AS VARCHAR(50)) AS UDF_PICTURE1,
+      CAST(ci.UDF_PICTURE2 AS VARCHAR(50)) AS UDF_PICTURE2,    
+      CAST(ci.UDF_PICTURE3 AS VARCHAR(50)) AS UDF_PICTURE3,
+      CAST(ci.UDF_PICTURE4 AS VARCHAR(50)) AS UDF_PICTURE4,    
+      CAST(ci.UDF_PICTURE5 AS VARCHAR(50)) AS UDF_PICTURE5,
+      CAST(ci.UDF_PICTURE6 AS VARCHAR(50)) AS UDF_PICTURE6,    
+      CAST(ci.UDF_PICTURE7 AS VARCHAR(50)) AS UDF_PICTURE7,
+      CAST(ci.UDF_PICTURE8 AS VARCHAR(50)) AS UDF_PICTURE8,    
+      CAST(ci.UDF_PICTURE9 AS VARCHAR(50)) AS UDF_PICTURE9,
+      CAST(ci.UDF_PICTURE10 AS VARCHAR(50)) AS UDF_PICTURE10,    
+      CAST(iiw.WarehouseCode AS VARCHAR(30)) AS WarehouseCode,
+      CAST(iiw.QuantityOnHand AS VARCHAR(30)) AS QuantityOnHand,    
+      CAST(iiw.DateUpdated AS VARCHAR(30)) AS DateUpdated,
+      CAST(iiw.ItemCode AS VARCHAR(30)) AS iiwItemCode,    
+      CAST(iw.WarehouseDesc AS VARCHAR(30)) AS WarehouseDesc,    
+      CAST(iw.WarehouseName AS VARCHAR(30)) AS WarehouseName,
+      CAST(iw.WarehouseAddress1 AS VARCHAR(30)) AS WarehouseAddress1,    
+      CAST(iw.WarehouseAddress2 AS VARCHAR(30)) AS WarehouseAddress2,
+      CAST(iw.WarehouseAddress3 AS VARCHAR(30)) AS WarehouseAddress3,    
+      CAST(iw.WarehouseCity AS VARCHAR(30)) AS WarehouseCity,
+      CAST(iw.WarehouseState AS VARCHAR(30)) AS WarehouseState,    
+      CAST(iw.WarehouseZipCode AS VARCHAR(30)) AS WarehouseZipCode,
+      CAST(iw.WarehouseCountryCode AS VARCHAR(30)) AS WarehouseCountryCode,    
+      CAST(iw.TelephoneNo AS VARCHAR(30)) AS TelephoneNo
+      FROM CI_Item ci
+      INNER JOIN IM_ItemWarehouse iiw ON ci.ItemCode = iiw.ItemCode
+      INNER JOIN IM_Warehouse iw ON iiw.WarehouseCode = iw.WarehouseCode
+      WHERE iiw.QuantityOnHand > 0 AND ci.ItemCode IS NOT NULL AND ci.ItemCode <> '' AND iiw.WarehouseCode IS NOT NULL AND iiw.WarehouseCode <> 'ZZZ'
+      AND ci.ItemID IN ($slice)
+      ORDER BY iiw.DateUpdated DESC";
+    $result = mssql_query($query) or die('Query Error: ' . mssql_get_last_message());
+    db_set_active();
+    $numRows = mssql_num_rows($result);
+
+    // drupal_set_message('Database Update Module');
+    // drupal_set_message($numRows . ' Row' . ($numRows == 1 ? '' : 's') . ' Returned');
+    
+    while($row = mssql_fetch_array($result)){
+      // Status for the batch
+      $context['results'][] = check_plain($row['ItemID']);
+      $context['sandbox']['progress']++;
+      $context['message'] = t('Now processing MAS ID: %node (%progress/%total)', array(
+        '%node' => $row['ItemID'],
+        '%progress' => $context['sandbox']['progress'],
+        '%total' => $context['sandbox']['max'],
+      ));
+
+      watchdog('db_updates', 'Reading ItemID: ' . $row['ItemID'] . ' (' . $row['ItemCode'] . ')');
+
+      $itemInfo[] = $row['ItemID'];
+      $trailerQuery = new EntityFieldQuery();
+      $trailerQueryResult = $trailerQuery->entityCondition('entity_type', 'node')
+        ->propertyCondition('type', 'trailer')
+        ->fieldCondition('field_itemid', 'value', $row['ItemID'], '=')
+        ->execute();
+
+      $nids = array();
+      if(isset($trailerQueryResult['node'])){
+        $nids = array_keys($trailerQueryResult['node']);
+      }
+
+      if(count($nids) > 0){
+        watchdog('db_updates', 'Updating ItemID: ' . $row['ItemID'] . ' (' . $row['ItemCode'] . ')');
+        $nid = $nids[0];
+        //drupal_set_message('Updating Node ' . $nid);
+      }else{
+        watchdog('db_updates', 'Adding ItemID: ' . $row['ItemID'] . ' (' . $row['ItemCode'] . ')');
+        global $user;
+        $node = entity_create('node', array(
+          'type' => 'trailer',
+          'uid' => $user->uid,
+          'status' => 1,
+        ));
+        $nodeWrapper = entity_metadata_wrapper('node', $node);
+        $nodeWrapper->save();
+        $nid = $nodeWrapper->nid->value();
+        //drupal_set_message('New Node ' . $nid);
+      }
+      
+      $node = node_load($nid);
+      $trailerWrapper = entity_metadata_wrapper('node', $node);
+      $trailerWrapper->title->set($row['ItemCode']);
+      $trailerWrapper->field_itemid->set($row['ItemID']);
+      $trailerWrapper->field_type_of_trailer->set(db_updates_taxonomy_term($row['UDF_TRAILER_TYPE'], 'type_of_trailer'));
+      $trailerWrapper->field_additional_equipment->set($row['UDF_ADDITIONAL_EQUIPMENT']);
+      $trailerWrapper->field_body_shell_thickness->set($row['UDF_BODY_SHELL_THICKNESS']);
+      $trailerWrapper->field_brakes->set($row['UDF_BRAKES']);
+      $trailerWrapper->field_color->set(db_updates_taxonomy_term($row['UDF_COLOR']), 'color');
+      $trailerWrapper->field_construction->set(db_updates_taxonomy_term($row['UDF_CONSTRUCTION'], 'construction'));
+      $trailerWrapper->field_date_updated->set(strtotime($row['DateUpdated']));
+      $trailerWrapper->field_door_type->set(db_updates_taxonomy_term($row['UDF_DOOR_TYPE'], 'door_type'));
+      $trailerWrapper->field_engine->set($row['UDF_ENGINE']);
+      $trailerWrapper->field_exhaust->set(db_updates_taxonomy_term($row['UDF_EXHAUST'], 'exhaust'));
+      $trailerWrapper->field_gate->set(db_updates_taxonomy_term($row['UDF_GATE_TYPE'],'gate'));
+      $trailerWrapper->field_gear_ratio->set((float)$row['UDF_GEAR_RATIO']);
+      $trailerWrapper->field_5th_wheel->set($row['UDF_5TH_WHEEL']);
+      $trailerWrapper->field_floor_type->set($row['UDF_FLOOR_TYPE']);
+      $trailerWrapper->field_gooseneck->set(db_updates_taxonomy_term($row['UDF_GOOSENECK'], 'gooseneck'));
+      $trailerWrapper->field_interior->set($row['UDF_INTERIOR']);
+      $trailerWrapper->field_side_height->set((float)$row['UDF_INSIDE_HEIGHT']);
+      $trailerWrapper->field_itemcodedesc->set($row['ItemCodeDesc']);
+      $trailerWrapper->field_king_pin->set($row['UDF_KING_PIN']);
+      $trailerWrapper->field_length->set(db_updates_taxonomy_term($row['UDF_LENGTH'], 'length'));
+      $trailerWrapper->field_manufacturer->set(db_updates_taxonomy_term($row['UDF_MAKE'], 'manufacturer'));
+      $trailerWrapper->field_miles->set((int)$row['UDF_MILES']);
+      $trailerWrapper->field_new_or_used->set(db_updates_taxonomy_term($row['UDF_NEW_USED'], 'new_or_used'));
+      $trailerWrapper->field_height->set((int)$row['UDF_OUTSIDE_HEIGHT']);
+      $trailerWrapper->field_refridgeration_unit->set(db_updates_taxonomy_term($row['UDF_REEFER_TYPE'], 'refrigeration_unit'));
+      $trailerWrapper->field_roof_type->set(db_updates_taxonomy_term($row['UDF_ROOF_TYPE'], 'roof_type'));
+      $trailerWrapper->field_sleeper->set($row['UDF_SLEEPER']);
+      $trailerWrapper->field_suspension_location->set(db_updates_taxonomy_term($row['UDF_SUSPENSION_LOCATION'], 'suspension_location'));
+      $trailerWrapper->field_suspension_type->set(db_updates_taxonomy_term($row['UDF_SUSPENSION_TYPE'], 'suspension_type'));
+      $trailerWrapper->field_phone_number->set($row['TelephoneNo']);
+      $trailerWrapper->field_quantity_on_hand->set((int)$row['TotalQuantityOnHand']);
+      $trailerWrapper->field_transmission->set(db_updates_taxonomy_term($row['UDF_TRANSMISSION'], 'transmission'));
+      $trailerWrapper->field_tire_sizes->set($row['UDF_TIRE_SIZE']);
+      $trailerWrapper->field_vin_number->set($row['UDF_VIN_NUMBER']);
+      $trailerWrapper->field_wheel_base->set((int)$row['UDF_WHEEL_BASE']);
+      $trailerWrapper->field_wheel_construction->set(db_updates_taxonomy_term($row['UDF_WHEEL_CONSTRUCTION'], 'construction'));
+      $trailerWrapper->field_wheel_type->set(db_updates_taxonomy_term($row['UDF_WHEEL_TYPE'], 'wheel_type'));
+      $trailerWrapper->field_width->set(db_updates_taxonomy_term($row['UDF_WIDTH'], 'width'));
+      $trailerWrapper->field_year->set($row['UDF_YEAR']);
+      $trailerWrapper->field_location->set(array(
+        'locality' => $row['WarehouseCity'],
+        'postal_code' => $row['WarehouseZipCode'],
+        'thoroughfare' => $row['WarehouseAddress1'],
+        'premise' => $row['WarehouseAddress2'],
+        'sub_premise' => $row['WarehouseAddress3'],
+        'administrative_area' => $row['WarehouseState'],
+        'country' => 'US',//$row['WarehouseCountryCode'],
+      ));
+      $ii = 0;
+      for($i = 1; $i <= 10; $i++){
+        if($row['UDF_PICTURE' . $i]){
+          $fid = db_updates_image_loader($row['UDF_PICTURE' . $i]);
+          if(!$fid){
+            //drupal_set_message('No File Loaded', 'warning');
+          }else{
+            //drupal_set_message('File Loaded');
+            $trailerWrapper->field_image[$ii]->set($fid);
+          }
+          $ii++;
+        }
+      }
+      $trailerWrapper->save();
+      watchdog('db_updates', 'Completed ItemID: ' . $row['ItemID'] . ' (' . $row['ItemCode'] . ')');
+      //$trailerWrapper->field_common_applications->set($row['common_applications']);
+      //$trailerWrapper->field_price->set($row['price']);
+    }
+
+    if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
+      $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+    }
+
+    return '';
+  }
+
+  /**
+   * Create a taxonomy term and return the tid.
+  **/
+  function db_updates_taxonomy_term($name, $vocabularyTerm = NULL){
+    //check if term exists
+    $spaces = ' ';
+    $dashes = '-';
+    $tid = taxonomy_get_term_by_name(strtolower(str_replace($spaces, $dashes, $name)), $vocabularyTerm);
+    if($tid){
+      return $tid[key($tid)]->tid;
+    }else{
+      $vocabulary = taxonomy_vocabulary_machine_name_load($vocabularyTerm);
+      if($vocabulary){
+        $term = new stdClass();
+        $term->name = ucwords(strtolower(str_replace($spaces, $dashes, $name)));
+        $term->vid = $vocabulary->vid;
+        taxonomy_term_save($term);
+        return $term->tid;
+      }else{
+        //drupal_set_message('Error (' . $vocabularyTerm . ')', 'error');
+      }
+    }
+  }
+
+  /**
+   * Create a file (image)
+  **/
+  function db_updates_image_loader($imageName){
+    if(empty($imageName)){
+      return null;
+    }
+    try{
+      $url = 'http://www.greatwesternleasing.com/media' . '/' . $imageName;
+      $doc = system_retrieve_file($url,  'public://', TRUE, FILE_EXISTS_REPLACE);
+      if($doc){
+        return get_object_vars(file_load($doc->fid));
+      }
+      
+    }catch(Exception $e){
+      //drupal_set_message($e, 'error');
+    }
+    return NULL;
+  }
+
+
+  /**
+   * Implements hook_cron
+  **/
+  function db_updates_cron(){
+    $batch = array(
+      'operations' => array(
+        array('db_updates_method', array()),
+        ),
+      'finished' => 'db_updates_batch_finished',
+      'title' => t('Updating Product Database'),
+      'init_message' => t('Preparing to start updating the database.'),
+      'progress_message' => t('Processed @current out of @total.'),
+      'error_message' => t('Database Update has encountered an error.'),
+    );
+
+    batch_set($batch);
+    $batch = &batch_get();
+    $batch['progressive'] = FALSE;
+    batch_process('');
+  }
+
+
+  /**
+   * Implementation of the batch database updating.
+   */
+  function db_updates_batch_start(){
+    $batch = array(
+      'operations' => array(
+        array('db_updates_method', array()),
+        ),
+      'finished' => 'db_updates_batch_finished',
+      'title' => t('Updating Product Database'),
+      'init_message' => t('Preparing to start updating the database.'),
+      'progress_message' => t('Processed @current out of @total.'),
+      'error_message' => t('Database Update has encountered an error.'),
+    );
+
+    batch_set($batch);
+    batch_process('admin/config/services/db_updater');
+  }
+
+  /**
+   * Callback for the bulk operation
+   */
+  function db_updates_batch_finished($success, $results, $operations){
+    if ($success) {
+      watchdog('db_updates', t('Database Synchronization completed successfully.'));
+      $message = format_plural(count($results), 'One row processed.', '@count rows processed.');
+      drupal_set_message($message);
+    }
+    else {
+      $error_operation = reset($operations);
+      $message = t('An error occurred while processing %error_operation with arguments: @arguments', array('%error_operation' => $error_operation[0], '@arguments' => print_r($error_operation[1], TRUE)));
+      watchdog('db_updates', t('Error in Database Synchronization: ' . $message));
+      drupal_set_message($message, 'error');
+    }
+    db_updates_delete_duplicate_trailers();
+  }

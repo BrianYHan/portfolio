@@ -1,0 +1,157 @@
+<?php
+
+/**
+ * Hook Form Alter
+ * Processes fields as required when "Submit Application" checkbox is checked
+ * @todo Add subgroup processing
+ **/
+
+function tournament_required_fields_form_alter(&$form, &$form_state, $form_id) {
+  //dsm($form);
+  $requiredFieldList['equestrian_group_application_node_form'] = array(
+    'field_email',
+    'field_first_name',
+    'field_last_name',
+    // 'field_address', 
+    'field_num_of_horse_riders',
+    'field_num_of_coach_wagon_drivers',
+    'field_num_of_coach_wagon_passeng',
+    'field_num_of_parade_out_walkers',
+    'field_num_of_horses_ridden',
+    'field_num_of_horses_pulling',
+    'field_num_of_horses_stock_tether',
+    'field_horse_breeds',
+    'field_group_costume',
+    'field_group_tack',
+    'field_total_length_of_unit',
+    'field_total_width_of_unit',
+    'field_horse_ownership',
+    'field_past_participant',
+    'field_application_explanation',
+    'field_application_signature_titl',
+  );
+
+  $requiredFieldList['float_application_node_form'] = array(
+    'field_application_signature_titl',
+    'field_organization_type',
+    'field_estimated_length_of_partic',
+    'field_estimated_budget',
+    'field_organization_description',
+  );
+
+  $requiredFieldList['media_application_node_form'] = array(
+    'field_first_name',
+    'field_last_name',
+    'field_email',
+    'field_media_type',
+    'field_attendee_first_name',
+    'field_attendee_last_name',
+    'field_secondary_contact_email',
+    'field_phone_number_2',
+    'field_role',
+    'field_application_signature_titl',
+  );
+
+  $typesOfForms = array(
+    'equestrian_group_application_node_form' => 'equestrian_group_application_node_form',
+    'float_application_node_form' => 'float_application_node_form',
+    'media_application_node_form' => 'media_application_node_form',
+  );
+
+  foreach($typesOfForms as $formKey => $formTitle){
+    if($form_id == $formKey){
+      foreach($requiredFieldList[$formKey] as $fieldName){
+        $lang = $form['field_submit_application']['#language'];
+        $inputString = 'field_submit_application[' . $lang . ']';
+
+        $form[$fieldName]['#states'] = array(
+          'required' => array(
+            ':input[name="'. $inputString . '"]' => array('checked' => TRUE),
+          ),
+        );
+
+      }
+      $form['#validate'][] = 'tournament_required_fields_form_validate';
+    }
+  }
+  
+}
+
+
+/**
+ * Form validation
+ * Checks that the fields selected are not empty
+ */
+
+function tournament_required_fields_form_validate($form, &$form_state){
+
+  $requiredFieldList['equestrian_group_application_node_form'] = array(
+    'field_email' => t('Email'), 
+    'field_first_name' => t('Marshall First Name'),
+    'field_last_name' => t('Marshall Last Name'),
+    //'field_address' => t('Group Marshall Address'),
+    'field_num_of_horse_riders' => t('# of Horse Riders'),
+    'field_num_of_coach_wagon_drivers' => t('# of Coach/Wagon Drivers'),
+    'field_num_of_coach_wagon_passeng' => t('# of Coach/Wagon Passengers'),
+    'field_num_of_parade_out_walkers' => t('# of Parade Out Walkers'),
+    'field_num_of_horses_ridden' => t('# of Horses Ridden'),
+    'field_num_of_horses_pulling' => t('# of Horses Pulling'),
+    'field_num_of_horses_stock_tether' => t('# of Horses Stock tethered'),
+    'field_horse_breeds' => t('Horse Breeds'),
+    'field_group_costume' => t('Group Costume'),
+    'field_group_tack' => t('Group Tack'),
+    'field_total_length_of_unit' => t('Maximum Length of Equestrian Unit'),
+    'field_total_width_of_unit' => t('Maximum Width of Equestrian Unit'),
+    'field_horse_ownership' => t('Horse Ownership'),
+    'field_past_participant' => t('Past Participant'),
+    'field_application_explanation' => t('Applicant Explanation'),
+    'field_application_signature_titl' => t('Group Marshall Digital Signature'),
+  );
+
+
+  $requiredFieldList['float_application_node_form'] = array(
+    'field_application_signature_titl' => t('Digital Signature'),
+    'field_organzation_type' => t('Organization Type'),
+    'field_estimated_length_of_partic' => t('Estimated Length of Participation'),
+    'field_estimated_budget' => t('Estimated Budget'),
+    'field_organization_description' => t('Brief Overview of Company or Organization'),
+  );
+
+    $requiredFieldList['media_application_node_form'] = array(
+    'field_first_name' => t('First Name'),
+    'field_last_name' => t('Last Name'),
+    'field_email' => t('Email'),
+    'field_media_type' => t('Media Type'),
+    'field_attendee_first_name' => t('Attendee First Name'),
+    'field_attendee_last_name' => t('Attendee Last Name'),
+    'field_secondary_contact_email' => t('Attendee Email'),
+    'field_phone_number_2' => t('Attendee Phone Number'),
+    'field_role' => t('Role'),
+    'field_application_signature_titl' => t('Digital Signature'),
+  );
+
+  $typesOfForms = array(
+    'equestrian_group_application_node_form' => 'equestrian_group_application_node_form',
+    'float_application_node_form' => 'float_application_node_form',
+    'media_application_node_form' => 'media_application_node_form',
+  );
+  
+  foreach($typesOfForms as $formKey => $formTitle){
+    if($form_state['build_info']['form_id'] == $formKey){
+      $lang = $form_state['values']['language'];
+      $checkvalue = $form_state['values']['field_submit_application'][$lang]['0']['value'];
+      //dsm($form_state['values']);
+      // Check if form has been submitted for review
+      if($checkvalue == 1){
+        foreach($requiredFieldList[$formKey] as $fieldName => $fieldTitle){
+          // Check if field is empty
+          if(empty($form_state['values'][$fieldName][$lang][0]['value'])){
+            form_set_error($fieldName, t('@field is required.', array(
+              '@field' => $fieldTitle,
+            )));
+          }
+        }
+      }
+    }
+  }    
+}

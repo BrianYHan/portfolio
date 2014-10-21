@@ -1,0 +1,7 @@
+name = Database Updates Module
+description = Allow the use of timed updates between two databases
+core = 7.x
+files[] = db_updates.module
+package = System
+stylesheets[all][] = db_updates.css
+scripts[] = db_updates.js

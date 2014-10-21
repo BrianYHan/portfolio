@@ -1,0 +1,10 @@
+name = Email By Role Module
+description = Email By Role System
+core = 7.x
+files[] = email_by_role.module
+package = Views
+stylesheets[all][] = email_by_role.css
+scripts[] = email_by_role.js
+dependencies[] = entity
+dependencies[] = views
+

@@ -1,0 +1,8 @@
+name = Difference Tracker Module
+description = Compares two entities and displays differences between them
+core = 7.x
+files[] = difference_tracker.module
+package = Content
+stylesheets[all][] = difference_tracker.css
+scripts[] = difference_tracker.js
+

@@ -1,0 +1,5 @@
+name = Tournament Application Required Fields Module
+description = Process required fields only when application is ready for submission
+core = 7.x
+files[] = tournament_required_fields.module
+package = Node

@@ -1,0 +1,5 @@
+name = Redirect after application Module
+description = Redirect after application System
+core = 7.x
+files[] = redirect_after_application.module
+package = Node

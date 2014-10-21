@@ -1,0 +1,422 @@
+<?php
+/**
+ * Implements hook_menu(). 
+ */
+function difference_tracker_menu() {
+  $items = array();
+  
+  $items['admin/config/content/difference_tracker'] = array(
+    'title' => 'Difference Tracker Settings',
+    'type' => MENU_NORMAL_ITEM,
+    'description' => 'Find and manage content.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('difference_tracker_admin_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  
+  $items['difference_tracked/%'] = array(
+    'title' => 'Difference Tracker',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'difference_tracker_method',
+    'page arguments' => array(1),
+    'access arguments' => array('administer site configuration'),
+  );
+  
+  return $items; 
+}
+
+/**
+ * Implements admin form
+ */
+
+function difference_tracker_admin_form(){
+  $form = array();
+  
+  // $form['difference_tracker_cron'] = array(
+  //   '#type' => 'select',
+  //   '#title' => t('Database Update Interval Length'),
+  //   '#default_value' => variable_get('difference_tracker_cron', 0),
+  //   '#options' => array(
+  //     0 => t('Every 10 minutes'),
+  //     1 => t('Every 30 minutes'),
+  //     2 => t('Every hour'),
+  //     3 => t('Every day'),
+  //   ),
+  // );
+
+  $form['band_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/band_application" class="button-style diff-tracker-settings">Update Band Applications</a>',
+  );
+
+  $form['float_application_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/float_application" class="button-style diff-tracker-settings">Update Float Applications</a>',
+  );
+
+  $form['equestrian_group_application_application_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/equestrian_group_application" class="button-style diff-tracker-settings">Update Equestrian Group Applications</a>',
+  );
+  $form['media_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/media_application" class="button-style diff-tracker-settings">Update Media Applications</a>',
+  );  
+
+  $form['media_attendee_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/media_attendee" class="button-style diff-tracker-settings">Update Media Attendee Applications</a>',
+  );
+
+  $form['all_application_submit'] = array(
+    '#type' => 'item',
+    '#markup' => '<a href="/difference_tracked/all" class="button-style diff-tracker-settings">Update All Applications</a>',
+  );
+ // $form['#submit'][] = 'difference_tracker_form_submit';
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements page callback 
+ */
+function difference_tracker_method_single($nid){
+  if(is_object($nid)){
+    $nid = $nid->nid;
+  }
+  watchdog('difference_tracker', 'Process: ' . $nid);
+
+  global $user;
+  
+  // Include necessary diff files
+  module_load_include('module', 'diff', NULL);
+  module_load_include('inc', 'diff', 'includes/node');
+  module_load_include('inc', 'diff', 'includes/text');
+  module_load_include('inc', 'diff', 'diff.pages');
+  module_load_include('inc', 'diff', 'diff.tokens');
+  module_load_include('inc', 'diff', 'diff.diff');
+
+  $now = strtotime('now');
+
+  $originalNodeArray = array();
+  $now = strtotime('now');
+  $field = 'field';
+
+  $nodeObject = node_load($nid);
+
+  // Object NID
+  $nodeObjectNid = $nodeObject->nid;
+  
+  // Node Object wrapper
+  $nodeObjectWrapper = entity_metadata_wrapper('node', $nodeObject->nid);
+
+  // Check to see if this node is even ready to be published in the media guide.
+  $addToMediaGuide = true;
+  if($nodeObjectWrapper->workflow_state_name->value() != 'Accepted'){
+    $addToMediaGuide = false;
+  }
+
+  // Query for Duplicate Nodes
+  $nodeDuplicateQuery = new EntityFieldQuery();
+  $nodeDuplicateQueryResult = $nodeDuplicateQuery->entityCondition('entity_type', 'node')
+    // ->propertyCondition('title', "%" . $new_node->title . "%","LIKE")
+    ->propertyCondition('type', 'display_application', '=')
+    ->fieldCondition('field_date_da_created', 'value', $now, '<')
+    ->fieldCondition('field_node_reference', 'nid', $nid, '=')
+    ->execute();
+
+  if(isset($nodeDuplicateQueryResult['node'])){
+    foreach($nodeDuplicateQueryResult['node'] as $nodeDuplicateKey => $nodeDuplicate){
+      watchdog('difference_tracker', t('Display Node Deleted: ' . $nid . '->' . $nodeDuplicate->nid));
+      $nodeDuplicateNid = $nodeDuplicate->nid;
+      node_delete($nodeDuplicateNid);
+    }
+  }
+
+  if($addToMediaGuide == false){
+    //node_delete($nodeDuplicateNid);
+  }
+
+  if($addToMediaGuide){
+    // Load the revision list for the node Object
+    $revisions = node_revision_list($nodeObject);
+
+    // What is the "current" revision? Store the object (there's lots of great info in there).
+    foreach($revisions as $vid => $revisionObject){
+      if($revisionObject->current_vid == $vid){
+        $nodeCurrentRevision = $revisionObject;
+      }
+    }
+
+    // If the current revision is older than our threshold, we don't care about the diff stuff.
+    $threshold = 7 * 24 * 60 * 60; // 7 days
+    if($nodeCurrentRevision->timestamp + $threshold > strtotime('now')){
+      // As we do not really care about revisions NEWER than the current one, let's get rid of them.
+      foreach($revisions as $vid => $revisionObject){
+        if($revisionObject->timestamp > $nodeCurrentRevision->timestamp){
+          unset($revisions[$vid]);
+        }
+      }
+
+      // Now that we've eliminated newer revisions, let's find the oldest revision before the threshold.
+      // $currentOldestRevisionTimestamp = $nodeCurrentRevision->timestamp;
+      $currentOldestRevisionTimestamp = 0;
+      $oldestRevisionVid = $nodeCurrentRevision->vid;
+      foreach($revisions as $vid => $revisionObject){
+        if($revisionObject->timestamp + $threshold < strtotime('now') && $revisionObject->timestamp > $currentOldestRevisionTimestamp){
+          $currentOldestRevisionTimestamp = $revisionObject->timestamp;
+          $oldestRevisionVid = $vid;
+        }
+      }
+    }else{
+      $oldestRevisionVid = $nodeCurrentRevision->vid;
+    }
+
+    // Get lowest or earliest of revisions
+    // $firstRevision = min($previousRevisionsBox);      
+    $state = 'raw';
+    $rows = array();
+
+    // Load the node from the current node nid 
+    $node = node_load($nid);
+    $old_node = node_load($node->nid, $oldestRevisionVid);
+    $new_node = node_load($node->nid, $nodeCurrentRevision->vid);
+    
+    $oldNodeObjectWrapper = entity_metadata_wrapper('node', $old_node);
+    $newNodeObjectWrapper = entity_metadata_wrapper('node', $new_node);
+    $rows = array_merge($rows, _diff_body_rows($old_node, $new_node, $state));
+    // Create entity 
+    $displayNode = difference_tracker_entity_create($rows, $node->uid, $nodeObjectWrapper->title->value());
+    watchdog('difference_tracker', t('Display Node Created.'));
+
+    // Wrap entity 
+    $displayNodeWrapper = entity_metadata_wrapper('node', $displayNode);
+
+    // Set Diffs into array-----------------------------------------------------------------------------
+    // Band Applications
+    $differencesArray = array();
+    $oldNodeFields = array();
+
+    if(isset($old_node->title)){
+      $differencesArray[$node->nid]['Title'] = diff_get_inline($old_node->title, $new_node->title);
+    }
+
+    // if(isset($oldNodeObjectWrapper->field_website)){
+    //   $differencesArray[$node->nid]['Website'] = diff_get_inline($oldNodeObjectWrapper->field_website->url, $newNodeObjectWrapper->field_website->url);
+    // }
+
+    if(isset($newNodeObjectWrapper->field_website)  && $newNodeObjectWrapper->field_website->value()){
+      //$differencesArray[$node->nid]['Website'] = $newNodeObjectWrapper->field_website->url->value();
+    }
+
+    $processArray = array(
+      'School Organization' => 'field_name_of_school_organizatio',
+      'Name of Band Director' => 'field_name_of_band_director',
+      //'Email' => 'field_email',
+      //'Time in Current Position' => 'field_time_in_current_position',
+      //'Total Director Experience' => 'field_total_director_experience',
+      'Band Description' => 'field_band_description',
+      'Years of any Prior Rose Parade' => 'field_year_s_of_any_prior_rose_p',
+      //'Application Signature' => 'field_application_signature_titl',
+      'Date Submitted' => 'field_date_submitted',
+      //'First Name' => 'field_first_name',
+      //'Last Name' => 'field_last_name',
+      'Reference Number' => 'field_reference_number',
+      'Number of Horse Riders' => 'field_num_of_horse_riders',
+      'Number of Coach Wagon Drivers' => 'field_num_of_coach_wagon_drivers',
+      'Number of Coach Wagon Passengers' => 'field_num_of_coach_wagon_passeng',
+      'Number of Parade Outwalkers' => 'field_num_of_parade_out_walkers',
+      'Number of Horses Ridden' => 'field_num_of_horses_ridden',
+      'Number of Horses Pulling' => 'field_num_of_horses_pulling',
+      'Number of Horses Stock Tether' => 'field_num_of_horses_stock_tether',
+      'Horse Breeds' => 'field_horse_breeds',
+      'Group costume' => 'field_group_costume',
+      'Group tack' => 'field_group_tack',
+      'Total Length of Unit' => 'field_total_length_of_unit',
+      'Total Width of Unit' => 'field_total_width_of_unit',
+      'Horse Ownership' => 'field_horse_ownership',
+      'Horse Ownership Explanation' => 'field_horse_ownership_explanatio',
+      'Past Participant' => 'field_past_participant',
+      'Past Participant Explanation' => 'field_past_participant_explanati',
+      //'Application Explanation' => 'field_application_explanation',
+      //'Secondary Contact Title' => 'field_secondary_contact_title',
+      //'Secondary Contact Email' => 'field_secondary_contact_email',
+      'Organization Description' => 'field_organization_description',
+      //'Estimated Budget' => 'field_estimated_budget',
+    );
+
+    foreach($processArray as $fieldPrettyName => $value){
+      if(isset($oldNodeObjectWrapper->$value)){
+        $differencesArray[$node->nid][$fieldPrettyName] = diff_get_inline($oldNodeObjectWrapper->$value->value(), $newNodeObjectWrapper->$value->value());
+      }
+    }
+    
+    // Build array of media guide photos in order to set the new display application media guide photo field
+    if(isset($nodeObjectWrapper->field_media_guide_photo)){
+      $imageInfo = $nodeObjectWrapper->field_media_guide_photo;
+    }
+    $imagesArray = array();
+    if(isset($nodeObjectWrapper->field_media_guide_photo)){
+      foreach($imageInfo as $image){
+        $imageArray = $image->value();
+        $filename = $imageArray['title'];
+        $imageObject = file_get_contents($imageArray['uri']);
+        $file = file_save_data($imageObject, $imageArray['uri'], FILE_EXISTS_RENAME);
+        $displayNodeWrapper->field_media_guide_photo->set(array('0' => (array)$file));
+      }
+    }
+    $displayNodeWrapper->field_vid_reference->set($nodeObjectWrapper->vid->value());
+    $displayNodeWrapper->field_date_da_created->set($now);
+    $displayNodeWrapper->field_node_reference->set($nid);
+    $displayNodeWrapper->field_term_reference->set($nodeObjectWrapper->field_term_reference->value());
+    $displayNodeWrapper->field_display_type->set($nodeObjectWrapper->type->value());
+    if(isset($nodeObjectWrapper->field_application_attachment)){
+      $displayNodeWrapper->field_application_attachment->set($nodeObjectWrapper->field_application_attachment->value());
+    }
+    
+    $differencesString = '';
+    $i = 0;
+    foreach($differencesArray[$node->nid] as $field_pretty_name => $field_value){
+      $class = preg_replace('/ /', '_', strtolower($field_pretty_name));
+      if($field_value){
+        $differencesString = $differencesString . '<div class="' . $class . ' field_' . $i . ' field_row"><div class="field_label">' . $field_pretty_name . ':</div><div class="field_value">' .  $field_value . '</div></div>';
+      }
+      $i++;
+    }
+    $displayNodeWrapper->field_differences->set($differencesString);
+  }
+
+  if(isset($displayNodeWrapper)){
+    $displayNodeWrapper->save();
+  }
+  if(isset($displayNode)){
+    node_save($displayNode);
+  }
+  
+  return '';
+}
+
+/**
+ * Implements page callback 
+ */
+function difference_tracker_method($typeOfApp = ''){
+  global $user;
+  
+  if(strtolower($typeOfApp) == 'all'){
+    // Queries for all 
+    $nodeQuery = new EntityFieldQuery();
+    $nodeQueryResult = $nodeQuery->entityCondition('entity_type', 'node')
+    ->fieldCondition('field_term_reference', 'tid', 32)
+    ->propertyCondition('type', 'display_application', '<>')
+    ->execute();
+  
+  }else{
+    //$term_id = taxonomy_get_term_by_name(ucfirst(strtolower($typeOfApp)), 'type_of_applicant');
+    switch (strtolower($typeOfApp)){
+      case 'band':
+        $typeOfApp = 'band_application';
+        break;
+      case 'equestrian':
+        $typeOfApp = 'equestrian_group_application';
+        break;
+      case 'float':
+        $typeOfApp = 'float_application';
+        break;
+    }
+    // Query -> currently looks for band applications that have been edited within the last 7 days
+    $nodeQuery = new EntityFieldQuery();
+    $nodeQueryResult = $nodeQuery->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', $typeOfApp)
+      ->execute();
+  }
+  $nids = array();
+  if(isset($nodeQueryResult['node'])){
+    $nids = array_keys($nodeQueryResult['node']);
+  }
+  
+  $now = strtotime('now');
+
+  $originalNodeArray = array();
+  $now = strtotime('now');
+  $field = 'field';
+  foreach ($nodeQueryResult['node'] as $key => $nodeObject){
+    drupal_set_message('Processed for: ' . $key);
+    difference_tracker_method_single($key);
+  }    
+  return '';
+}
+
+ /**
+ * Create New Entity, 'Display Application', that will be used to display differences on media guide.
+ * @param: $rowInfo = array of diff rows; $userID = original node author user id; $entityTitle = 
+ */
+function difference_tracker_entity_create($rowInfo, $userID, $entityTitle){
+  $createdEntity = entity_create('node', array(
+    'type' => 'display_application',
+    '#rows' => $rowInfo,
+    'uid' => $userID,
+    'body' => '',
+    'title' => $entityTitle,
+    '#attributes' => array('class' => array('diff')),
+    'status' => 0,
+  ));
+  return $createdEntity;
+}
+
+
+
+/**
+ * Create a file (image)
+**/
+function difference_tracker_image_loader($imageName ){
+  if(empty($imageName)){
+    return null;
+  }
+  try{
+    $url = 'http:// www.tofr.co/media' . '/' . $imageName;
+    $doc = system_retrieve_file($url,  'public://', TRUE, FILE_EXISTS_REPLACE);
+    if($doc){
+      return get_object_vars(file_load($doc->fid));
+    }
+    
+  }catch(Exception $e){
+  }
+  return NULL;
+}
+
+
+/**
+* Function to load and add taxonomy terms to display applications
+**/
+/**
+ * Create a taxonomy term and return the tid.
+**/
+function difference_tracker_taxonomy_term($tid){
+  // check if term exists
+  $spaces = ' ';
+  $dashes = '-';
+  $tid = taxonomy_term_load($tid);
+  if($tid){
+    return $tid;
+  }
+}
+
+/**
+ * Implementation of hook_rules_action_info
+ */
+function difference_tracker_rules_action_info(){
+  $actions = array();
+  
+  $actions['difference_tracker_method_single'] = array(
+    'label' => 'Update Media Guide',
+    'group' => t('Node'),
+    'parameter' => array(
+      'item' => array(
+        'label' => t('Node NID'),
+        'type' => 'node',
+      ),
+    ),
+  );
+
+  return $actions;
+}

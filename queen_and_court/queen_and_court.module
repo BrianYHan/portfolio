@@ -1,0 +1,957 @@
+<?php
+/**
+ * Implements hook_menu().
+ */
+function queen_and_court_menu(){
+	$items = array();
+
+	$items['qac'] = array(
+		'title' => t('Queen and Court Entrant Ranker'),
+		'type' => MENU_NORMAL_ITEM,
+		'description' => 'Add, Edit, Delete Queen and Court Entrants',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('queen_and_court_form'),
+		'access arguments' => array('administer queen and court'),
+	);
+
+
+	$items['qac/%'] = array(
+		'title' => t('Queen and Court Entrants'),
+		'type' => MENU_NORMAL_ITEM,
+		'description' => 'Add, Edit, Delete Queen and Court Entrants',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('queen_and_court_form', 1),
+		'access arguments' => array('administer queen and court'),
+	);
+
+	$items['qac/master'] = array(
+		'title' => t('Queen and Court Master Judge View'),
+		'type' => MENU_NORMAL_ITEM,
+		'description' => 'Master Judge',
+		'page callback' => array('queen_and_court_judge_results'),
+		'access arguments' => array('administer queen and court master judge'),
+	);
+
+	$items['qac/settings'] = array(
+		'title' => t('Queen and Court Administrative Settings'),
+		'type' => MENU_NORMAL_ITEM,
+		'description' => 'Admin Page',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('queen_and_court_admin'),
+		'access arguments' => array('administer queen and court'),
+	);
+
+	return $items;
+}
+
+/**
+ * Implements hook_permission(). 
+ */
+function queen_and_court_permission(){ 
+	return array(
+		'administer queen and court master judge' => array(
+			'title' => t('Administer Queen and Court Master Judge Module'),
+		),
+    'administer queen and court' => array(
+      'title' => t('Administer Queen and Court Ranker'),
+    ),
+	);
+}
+
+/**
+ * Implements admin page 
+ */
+function queen_and_court_admin(){
+	$form = array();
+	$form['current_round_master'] = array(
+		'#type' => 'select',
+		'#title' => t('What round would you like to set the master judge view to?'),
+		'#options' => array(
+			1 => 1,
+			2 => 2,
+			3 => 3,
+			4 => 4, 
+		),
+		'#default_value' => variable_get('current_round_master'),
+	);
+
+	$form['queen_and_court_export_button'] = array(
+		'#type' => 'submit',
+		'#value' => 'Download scores',
+		'#submit' => array('queen_and_court_excel_export'),
+	);
+
+	return system_settings_form($form);
+}
+
+
+/**
+ * Page Callback for main module page
+ */
+function queen_and_court_form($form, &$form_state, $entrantNumberFromUrl = ''){
+  global $user;
+  $userID = $user->uid;
+
+  if($entrantNumberFromUrl){
+    //Query for all Queen Contestants
+    $queenQuery = new EntityFieldQuery();
+    $queenQuery->entityCondition('entity_type', 'node');
+    $queenQuery->propertyCondition('type', 'queen', '=');
+    $queenQuery->fieldCondition('field_entrant_number', 'value', $entrantNumberFromUrl);
+    $queenQuery->addMetaData('account', user_load(1));
+    $queenQueryResult = $queenQuery->execute();
+
+    // If entrantNumber from URL is not a queen, redirect to default Queen-Ranker page
+    if(!isset($queenQueryResult['node'])){
+       drupal_goto('qac');
+    }
+  }
+
+	
+
+  $round = variable_get('current_round_master', 1);
+	//Same process as with the rankings...
+  $roundsArray = array();
+  //Load all ranking terms
+  $roundQuery = new EntityFieldQuery();
+  $roundQueryResult = $roundQuery->entityCondition('entity_type', 'taxonomy_term')
+    ->propertyCondition('vid', 15)
+    ->execute();
+  foreach($roundQueryResult['taxonomy_term'] as $roundTermID => $roundTermObject){
+    $roundsArray[$roundTermID] = taxonomy_term_load($roundTermID);
+  }
+  
+  switch($round){
+    case 1:
+      $round = $roundsArray[33];
+      break;
+    case 2:
+      $round = $roundsArray[34];
+      break;
+    case 3:
+      $round = $roundsArray[35];
+      break;
+    case 4:
+      $round = $roundsArray[36];
+      break;
+  }
+  
+  //Query for all Queen Contestants
+  $view = views_get_view_result('order_of_entrants');
+	
+  //Load Result into an array that the form can handle... 
+  $allQueensArray = array();
+  $allQueenNIDArray = array();
+  $entrantNumArray = array();
+  foreach($view as $queenNodeID => $nodeObject){
+  	$queenNode = node_load($nodeObject->nid);
+  	$queenWrapper = entity_metadata_wrapper('node', $queenNode);
+  	$entrantNumber = $queenWrapper->field_entrant_number->value();
+  	
+  	$allQueensArray[$entrantNumber] = $entrantNumber;
+  	$entrantNumArray[] = $entrantNumber;
+    $allQueenNIDArray[$entrantNumber] = $nodeObject->nid;
+  }
+  
+  //IF form_state was rebuilt, set default entrant num to appropriate number
+  if($form_state['rebuild'] == TRUE){  
+    $default_entrant_num = '';
+    //$currentQueen = $form['queen_ids']['#value'];
+    $default_entrant_num = $form_state['storage']['default_queen_entrant_num'];
+    $entrantNumberFromUrl = $form_state['storage']['default_queen_entrant_num'];
+  }
+  else{
+    $default_entrant_num = array();
+    $default_entrant_num = reset($allQueensArray);
+    $default_entrant_num = key($allQueensArray);
+    $entrantNumberFromUrl = '';
+      //If entrantNumber from URL is not a queen, redirect to default Queen-Ranker page
+    if($entrantNumberFromUrl && !isset($queenQueryResult['node'][$entrantNumberFromUrl])){
+        drupal_goto('qac');
+    }
+    // $first_entrant_key = key($default_entrant_num);
+  }
+
+  //If entrant number is passed in as an argument
+  if(isset($form_state['build_info']['args'][0])){
+    $default_entrant_num = '';
+    $default_entrant_num = $form_state['build_info']['args'][0];
+  }
+
+  //Query for all Queen Contestants
+  $voteQuery = new EntityFieldQuery();
+  $voteQueryResult = $voteQuery->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'votes', '=')
+    ->propertyCondition('uid', $userID)
+    ->fieldCondition('field_queen_entrant_number', 'value', $default_entrant_num)
+    ->fieldCondition('field_round' , 'tid', $round->tid)
+    ->execute();
+   
+  //Load Result into an array that the form can handle... 
+  $allVotesArray = array();
+  $existsAlready = FALSE;
+  if($voteQueryResult){
+    $existsAlready = TRUE;
+    foreach($voteQueryResult['node'] as $voteNodeID => $nodeObject){
+      $vote = node_load($voteNodeID);
+      $voteWrapper = entity_metadata_wrapper('node', $vote);
+      $queenEntrantNumber = $voteWrapper->field_queen_entrant_number->value();
+      $queenRank = $voteWrapper->field_rankings->tid->value();
+      $allVotesArray[$queenEntrantNumber] = array(
+        'nid' => $voteNodeID,
+        'field_queen_reference' => $voteWrapper->field_queen_reference->nid->value(),
+        'field_special_notes' => $voteWrapper->field_special_notes->value(),
+        'field_round' => $voteWrapper->field_round->tid->value(),
+        'field_rankings' => $queenRank,
+        'field_queen_entrant_number' => $queenEntrantNumber,
+      );
+    }
+  }
+  if(!isset($queenEntrantNumber)){
+    $queenEntrantNumber = '';
+  }
+
+  $defaultRanking = '';
+  if(isset($allVotesArray[$default_entrant_num])){
+    switch($allVotesArray[$default_entrant_num]['field_rankings']){
+      case 37:
+        $defaultRanking = t('RC');
+        break;
+      case 38:
+        $defaultRanking  = t('DQ');
+        break;
+      case 39:
+        $defaultRanking = t('0');
+        break;
+      case 40:
+        $defaultRanking = t('1');
+        break;
+      case 41:
+        $defaultRanking = t('2');
+        break;
+      case 42:
+        $defaultRanking = t('3');
+        break;
+    }
+  }
+
+  $rankingOptions = array(
+    'RC' => 'RC',
+    'DQ' => 'DQ',
+    '0' => 0,
+    '1' => 1,
+    '2' => 2,
+    '3' => 3,
+  );
+  $form = array();
+  $form['queen_ids'] = array(
+  	'#type' => 'hidden',
+  	// '#options' => $allQueensArray,
+  	'#title' => t('Entrant'),
+  	'#value' => $default_entrant_num,
+  );
+
+  $form['queen_id_display'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h1 class="entrant-title" style="text-align: center">Entrant #' . $default_entrant_num . '</h1>',
+  );
+  
+  //Hidden element of entrant #'s for the form submit
+  $form['queen_entrant_num_default'] = array(
+    '#type' => 'hidden',
+    '#value' => $entrantNumArray,
+  );
+  
+  //Hidden element of entrant #'s for the form submit
+  $form['queen_entrant_num_keyed_array'] = array(
+    '#type' => 'hidden',
+    '#value' => $allQueensArray,
+  );
+  
+  //Hidden element so we can send the NIDs to form_state
+  $form['queen_nids'] = array(
+    '#type' => 'hidden',
+    '#value' => $allQueenNIDArray,
+  );
+
+  //Hidden form element for whether or not a new vote must be created
+  $form['existsAlready'] = array(
+    '#type' => 'hidden',
+    '#value' => $existsAlready,
+  );
+
+ 
+
+  $form['queen_rankings'] = array(
+  	'#type' => 'radios',
+  	'#title' => t('Your Score for this entrant:'),
+    '#required' => TRUE,
+  	'#options' => $rankingOptions,
+    '#default_value' => $defaultRanking, 
+  );
+
+ $rankingOptions = array(
+    'RC' => 'RC',
+    'DQ' => 'DQ',
+    'zero' => '0',
+    'plusone' => '1',
+    'plustwo' => '2',
+    'plusthree' => '3',
+  );
+
+  $rankingOptionString = '';
+  foreach($rankingOptions as $key => $value){
+    $class = array('queen-ranking-cover');
+    if($defaultRanking === $value){
+      $class[] = 'selected';
+    }
+    $rankingOptionString .= '<div class="' . implode(' ', $class) . '" id="' . $key . '" value="' . $value . '">' . $value . '</div>';
+  }
+  
+  $form['queen_rankings_cover'] = array(
+    '#type' => 'item',
+    '#title' => '',
+    '#markup' => $rankingOptionString,
+  );
+
+  $form['queen_special_notes'] = array(
+  	'#title' => t('Notes'),
+  	'#type' => 'textarea',
+  	'#description' => t('Add a note for the entrant'),
+  	'#default_value' =>  isset($allVotesArray[$queenEntrantNumber]['field_special_notes']) ? $allVotesArray[$queenEntrantNumber]['field_special_notes'] : '',
+  ); 
+
+  //$form['actions']['submit']['#validate'][] = 'queen_and_court_form_validate';
+
+  $form['actions']['previous_submit'] = array(
+  	'#type' => 'submit',
+  	'#value' => t('Previous'),
+  );
+  $form['actions']['next_submit'] = array(
+  	'#type' => 'submit',
+  	'#value' => t('Next'),
+  );
+  return $form;
+}
+
+/**
+ * Validation Handler for form
+ */
+function queen_and_court_form_validate($form, &$form_state){
+	// $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Submit handler for the form
+ */
+function queen_and_court_form_submit(&$form, &$form_state){
+	global $user;
+
+	$queen = $form_state['values']['queen_ids'];
+	$queenNID = $form_state['values']['queen_nids'][$queen];
+	$userID = $user->uid;
+	$rankings = $form_state['values']['queen_rankings'];
+
+	$specialNotes = $form_state['values']['queen_special_notes'];
+	$round = variable_get('current_round_master');
+	//Same process as with the queens...
+  $allRankingsArray = array();
+  //Load all ranking terms
+  $rankingQuery = new EntityFieldQuery();
+  $rankingQueryResult = $rankingQuery->entityCondition('entity_type', 'taxonomy_term')
+  	->propertyCondition('vid', 16)
+  	->execute();
+  foreach($rankingQueryResult['taxonomy_term'] as $termID => $termObject){
+  	$allRankingsArray[$termID] = taxonomy_term_load($termID);
+  }
+  switch($rankings){
+  	case 'RC':
+  		$rankings = $allRankingsArray[37];
+  		break;
+  	case 'DQ':
+  		$rankings = $allRankingsArray[38];
+  		break;
+  	case 0:
+  		$rankings = $allRankingsArray[39];
+  		break;
+  	case 1:
+  		$rankings = $allRankingsArray[40];
+  		break;
+  	case 2:
+  		$rankings = $allRankingsArray[41];
+  		break;
+  	case 3:
+  		$rankings = $allRankingsArray[42];
+  		break;
+  }
+
+ //Same process as with the rankings...
+  $roundsArray = array();
+  //Load all ranking terms
+  $roundQuery = new EntityFieldQuery();
+  $roundQueryResult = $roundQuery->entityCondition('entity_type', 'taxonomy_term')
+  	->propertyCondition('vid', 15)
+  	->execute();
+  foreach($roundQueryResult['taxonomy_term'] as $roundTermID => $roundTermObject){
+  	$roundsArray[$roundTermID] = taxonomy_term_load($roundTermID);
+  }
+  
+  switch($round){
+  	case 1:
+  		$round = $roundsArray[33];
+  		break;
+  	case 2:
+  		$round = $roundsArray[34];
+  		break;
+  	case 3:
+  		$round = $roundsArray[35];
+  		break;
+  	case 4:
+  		$round = $roundsArray[36];
+  		break;
+  }
+
+
+
+  $defaultQueen = $form_state['values']['queen_entrant_num_default'];
+
+  $backwardsDefaultQueen = $form_state['values']['queen_entrant_num_default'];
+  end($backwardsDefaultQueen);
+  $last_key_queen_array = key($backwardsDefaultQueen);
+
+  $pointer = array_search($queen, $defaultQueen);
+	if($form_state['clicked_button']['#id'] == 'edit-previous-submit'){
+    if($pointer < 1){
+      end($defaultQueen);
+      $pointer = key($defaultQueen);
+      $nextQueenKey = $pointer;  
+    }else{
+      $nextQueenKey = $pointer - 1;  
+    }
+	}
+	if($form_state['clicked_button']['#id'] == 'edit-next-submit'){
+ 		if($pointer >= $last_key_queen_array){
+      reset($defaultQueen);
+      $pointer = key($defaultQueen);
+      $nextQueenKey = 0;
+    }else{
+      $nextQueenKey = $pointer + 1;
+    }
+	}
+
+	$newDefaultQueen = $defaultQueen[$nextQueenKey];
+
+	$form_state['storage']['default_queen_entrant_num'] = $newDefaultQueen;
+
+
+  if($form_state['values']['existsAlready'] == TRUE){
+    $voteQuery = new EntityFieldQuery();
+    $voteQueryResult = $voteQuery->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'votes', '=')
+      ->propertyCondition('uid', $userID)
+      ->fieldCondition('field_round' , 'tid', $round->tid)
+      ->fieldCondition('field_queen_entrant_number', 'value', $queen)
+      ->execute();
+     
+    //Load Result into an array that the form can handle... 
+    $allVotesArray = array();
+    
+    if($voteQueryResult){  
+      foreach($voteQueryResult['node'] as $voteNodeID => $nodeObject){
+        $vote = node_load($voteNodeID);
+        $voteWrapper = entity_metadata_wrapper('node', $vote);
+        $voteWrapper->field_special_notes->set($specialNotes);
+        $voteWrapper->field_rankings->set($rankings);
+        $voteWrapper->save();
+      }
+    }
+  }else{
+    $voteNode = queen_and_court_entity_create($queen, $queenNID, $userID, $rankings, $specialNotes, $round);
+  }
+	$form_state['rebuild'] = TRUE;
+  drupal_goto('qac/' . $newDefaultQueen);
+	return '';
+}
+
+ /**
+ * Create New Entity, 'Vote', that will be used to display differences on media guide.
+ * @param: $queen = nodeID of Queen; 
+ * @param: $userID = original vote author user id; 
+ * @param: $rankings = ranking term object 
+ * @param: $specialNotes = String
+ * @param: $round = round term object
+ */
+function queen_and_court_entity_create($queen, $queenNID, $userID, $rankings, $specialNotes, $round){
+  $createdEntity = entity_create('node', array(
+    'type' => 'votes',
+    'uid' => $userID,
+    'title' => $queen . '-' . $round->name . '-' .$userID,
+    'status' => 0,
+  ));
+  $createdEntityWrapper = entity_metadata_wrapper('node', $createdEntity);
+  $createdEntityWrapper->field_rankings->set($rankings);
+  $createdEntityWrapper->field_queen_reference->set($queenNID);
+  $createdEntityWrapper->field_queen_entrant_number->set($queen);
+  $createdEntityWrapper->field_special_notes->set($specialNotes);
+  $createdEntityWrapper->field_round->set($round);
+  $createdEntityWrapper->save();
+  return $createdEntityWrapper;
+}
+
+/**
+ * Hook_node_delete
+ * @param: $node -> Queen node that is being deleted
+ */
+function queen_and_court_node_delete($node){
+  if($node->type == 'queen'){
+    $nodeWrapper = entity_metadata_wrapper('node', $node);
+    $entrantNumber = $nodeWrapper->field_entrant_number->value();
+
+    // $nodesToDelete = array();
+    $nodesQuery = new EntityFieldQuery();
+    $nodesQueryResult = $nodesQuery->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'votes', '=')
+      ->fieldCondition('field_queen_entrant_number', 'value', $entrantNumber, '=')
+      ->execute();
+    if(isset($nodesQueryResult['node'])){
+      foreach($nodesQueryResult['node'] as $nid => $info){
+        node_delete($nid);
+      }
+    }
+  }
+}
+
+/**
+* Implements hook_block_info().
+*/
+function queen_and_court_block_info() {
+  $blocks = array();
+  $blocks['Quick Jump Block'] = array(
+    'info' => t('Quick Jump for QAC Block'),
+  );
+  return $blocks;
+}
+
+/**
+* Implements hook_block_view().
+*/
+function queen_and_court_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'Quick Jump Block':
+      $block['subject'] = '';
+      $block['content'] = render(drupal_get_form('queen_and_court_quickjump_form'));
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Implementation of hook_form()
+ */
+function queen_and_court_quickjump_form(){
+  global $user;
+
+  $form = array();
+
+  $form['login_info'] = array(
+    '#type' => 'item',
+    '#markup' => t('You are logged in as @name', array(
+      '@name' => $user->name,
+    )),
+    '#attributes' => array(
+      'class' => array(
+        'test',
+      ),
+    ),
+  );
+
+  $form['entrant'] = array(
+    '#type' => 'textfield',
+    '#size' => 8,
+    '#maxlength' => 11,
+    '#required' => true,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Go'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_form_submit()
+ */
+function queen_and_court_quickjump_form_submit($form, &$form_state){
+  drupal_goto('qac/' . $form_state['values']['entrant']);
+}
+
+/**
+ * Master Judge Form
+ **/
+function queen_and_court_judge_results(){
+  $startTime = microtime(true);
+  // Get the current round.
+	$round = variable_get('current_round_master');
+
+
+ 	// Same process as with the rankings...
+  $roundsArray = array();
+
+  // Load all 'round' terms
+  // TODO: Add to a settings screen.
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'taxonomy_term')
+  	->propertyCondition('vid', 15)
+  	->execute();
+  
+  // The term name contains the number. Let's use it.
+  foreach($result['taxonomy_term'] as $roundTermObject){
+    $term = taxonomy_term_load($roundTermObject->tid);
+    $roundNumber = (int)$term->name;
+  	$roundsArray[$roundNumber] = $term->tid;
+  }
+
+  // Load All Judges
+  // Can't use entity field query for some reason.
+  $result = db_query("SELECT DISTINCT ur.uid, u.name FROM {users_roles} ur LEFT JOIN {users} u ON ur.uid = u.uid WHERE ur.rid IN (:rid)", array(
+    ':rid' => array(16, 15),
+  ));
+
+  $judgeArray = array();
+  foreach($result as $record){
+    $judgeArray[$record->uid] = $record->name;
+  };
+
+  // Load all Votes
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'votes', '=')
+    ->fieldCondition('field_round' , 'tid', $roundsArray[$round])
+    ->execute();
+   
+  // Load Result into an array that the form can handle... 
+  $votesArray = array();
+  $voteToNid = array();
+
+  foreach($result as $record){
+    foreach($record as $nodeInfo){
+      $node = node_load($nodeInfo->nid);
+      $nodeWrapper = entity_metadata_wrapper('node', $node);
+      $votesArray[$nodeWrapper->field_queen_reference->field_entrant_number->value()][$node->uid] = $nodeWrapper->field_rankings->name->value();
+      $voteToNid[$nodeWrapper->field_queen_reference->field_entrant_number->value()][$node->uid] = $nodeWrapper->nid->value();
+    }
+  }
+
+  // We need to get these votes into order by judge.
+  $sortedVotesArray = array();
+  foreach($judgeArray as $uid => $name){
+    foreach($votesArray as $nid => $thisVoteArray){
+      if(isset($thisVoteArray[$uid])){
+        $sortedVotesArray[$nid][$uid] = $thisVoteArray[$uid];
+      }else{
+        $sortedVotesArray[$nid][$uid] = NULL;
+      }
+    }
+  }
+
+  // Why waste memory?
+  unset($votesArray);
+
+  // Make the table.
+  $header[] = t('Entrant');
+  
+  foreach($judgeArray as $judgeKey => $judgeValue){
+    $header[$judgeKey] = $judgeValue;
+  }
+  $header[] = t('Average');
+
+  // Make the rows.
+  foreach($sortedVotesArray as $nid => $judgeVoteArray){
+    // Initialize the row.
+    $row = array();
+    $rowTotal = 0;
+    $rowCount = 0;
+    $isDQ = false;
+
+    $row[] = $nid;
+    foreach($judgeVoteArray as $uid => $ranking){
+      // If the vote is a number, count it and add it up.
+      if(is_numeric($ranking)){
+        $rowTotal += $ranking;
+      }
+      if(is_numeric($ranking)){
+        $rowCount++;
+      }
+
+      if($ranking == 'DQ'){
+        $isDQ = true;
+      }
+
+      if(isset($voteToNid[$nid][$uid])){
+        $data = l($ranking, ("node/" . $voteToNid[$nid][$uid] . "/edit"));
+      }else{
+        $data = '';
+      }
+
+      $row[] = array(
+        "data" => $data,
+        'class' => 'edit-vote-link',
+      );
+    }
+    if($isDQ){
+      $row[] = 'DQ';
+    }else{
+      $row[] = number_format($rowTotal / $rowCount, 1);
+    }
+
+    $rows[] = $row;
+  }
+
+  // dsm(number_format(microtime(true) - $startTime, 2) . ' seconds');
+
+  return theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+  ));
+}
+
+
+/**
+ * Queen and Court Exporting Function
+ **/
+function queen_and_court_excel_export(){
+  include 'PHPExcel.php';
+  include 'PHPExcel/IOFactory.php';
+  global $user;
+	$userID = $user->uid;
+	
+	$round = variable_get('current_round_master');
+
+
+ 	//Same process as with the rankings...
+  $roundsArray = array();
+  //Load all ranking terms
+  $roundQuery = new EntityFieldQuery();
+  $roundQueryResult = $roundQuery->entityCondition('entity_type', 'taxonomy_term')
+  	->propertyCondition('vid', 15)
+  	->execute();
+  foreach($roundQueryResult['taxonomy_term'] as $roundTermID => $roundTermObject){
+  	$roundsArray[$roundTermID] = taxonomy_term_load($roundTermID);
+  }
+	switch($round){
+  	case '1':
+  		$round = $roundsArray[33];
+  		break;
+  	case '2':
+  		$round = $roundsArray[34];
+  		break;
+  	case '3':
+  		$round = $roundsArray[35];
+  		break;
+  	case '4':
+  		$round = $roundsArray[36];
+  		break;
+  }
+
+  //Load All Rankings
+  $allRankingsArray = array();
+  //Load all ranking terms
+  $rankingQuery = new EntityFieldQuery();
+  $rankingQueryResult = $rankingQuery->entityCondition('entity_type', 'taxonomy_term')
+  	->propertyCondition('vid', 16)
+  	->execute();
+  foreach($rankingQueryResult['taxonomy_term'] as $termID => $termObject){
+  	$allRankingsArray[$termID] = taxonomy_term_load($termID);
+  }
+ 	
+	//All Judges
+  $result = db_query("SELECT DISTINCT ur.uid, u.name FROM {users_roles} ur LEFT JOIN {users} u ON ur.uid = u.uid WHERE ur.rid = :rid", array(
+  	':rid' => 16,
+  ));
+
+  $judgeArray = array();
+  foreach($result as $record){
+  	$judgeArray[$record->uid] = $record->name;
+  };
+
+	//Query for all Queen Contestants
+	$voteQuery = new EntityFieldQuery();
+	$voteQueryResult = $voteQuery->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'votes', '=')
+    ->fieldCondition('field_round' , 'tid', $round->tid)
+    ->execute();
+   
+  //Load Result into an array that the form can handle... 
+  $allVotesArray = array();
+  
+  foreach($voteQueryResult['node'] as $nodeID => $nodeObject){
+  	$vote = node_load($nodeID);
+  	$voteWrapper = entity_metadata_wrapper('node', $vote);
+  	$ranking_reference = $voteWrapper->field_rankings->value();
+  	if($ranking_reference->name != 'RC'){
+  		$ranking_reference_name = (int)($ranking_reference->name);
+  	}
+  	switch($ranking_reference){
+	  	case 'RC':
+	  		$ranking_reference->tid = $allRankingsArray[37];
+	  		break;
+	  	case 'DQ':
+	  		$ranking_reference->tid = $allRankingsArray[38];
+	  		break;
+	  	case '0':
+	  		$ranking_reference->tid = $allRankingsArray[39];
+	  		break;
+	  	case '1':
+	  		$ranking_reference->tid = $allRankingsArray[40];
+	  		break;
+	  	case '2':
+	  		$ranking_reference->tid = $allRankingsArray[41];
+	  		break;
+	  	case '3':
+	  		$ranking_reference->tid = $allRankingsArray[42];
+	  		break;
+  	}
+  	$queen_reference = $voteWrapper->field_queen_reference;
+    $queen_entrant_number = $voteWrapper->field_queen_entrant_number->value();
+
+   
+  	$allVotesArray[$nodeID] = array(
+  		'uid' => $vote->uid,
+  		'field_queen_reference' => $queen_reference,
+      'field_entrant_number' => $queen_entrant_number,
+  		'field_ranking_name' => $ranking_reference_name,
+      'field_ranking' => (int)$ranking_reference->name,
+      'node_id' => $vote->nid,
+ 		);
+
+  }
+
+	//Theme table
+  $header[] = t('Entrant');
+  
+  foreach($judgeArray as $judgeKey => $judgeValue){
+  	$header[$judgeKey] = $judgeValue;
+  }
+  $header[] = t('Average');
+  $rows = array();
+
+  $rankings = $allVotesArray[$nodeID];
+
+  $rowInfo = array();
+
+	$setups = array();
+  foreach($judgeArray as $judge_id => $judgeName){
+    $ranking = NULL;
+
+  	foreach($allVotesArray as $vote){
+      $ranking = $vote['field_ranking'];
+      $entrantNumber = $vote['field_entrant_number'];
+      $voteNodeID = $vote['node_id'];
+      if($vote['uid'] == $judge_id){
+			  $setups[$entrantNumber][$judge_id] = array(
+          'ranking' => $ranking,
+          'nodeID' => $voteNodeID,
+        );
+      }elseif(!isset($setups[$entrantNumber][$judge_id])){
+        $setups[$entrantNumber][$judge_id] = NULL;
+      }
+
+  	}
+  }
+
+  foreach($setups as $entrantNumber => $info){
+    $row = array();
+    $rankTotal = 0;
+    $rankSum = 0;
+    $row[] = $entrantNumber;
+    foreach($info as $ranking){
+        if($ranking['ranking'] > 0 && $ranking['ranking'] != 'RC'){
+          $rankTotal += $ranking['ranking'];
+          $rankSum++;
+        }
+        $row[] = array(
+          'data' => ($ranking['ranking']),
+          'class' => 'edit-vote-link',
+          'attribute' => array(
+            'link' => '/node/' . $ranking['nodeID'] . '/edit',  
+          ),
+        );
+     }
+    $row[] = number_format($rankTotal / $rankSum, 1);
+    $rows[] = $row;
+  }
+ 
+
+  // Store the file in sites/default/files
+  $excel = new PHPExcel();
+  header('Content-Type: application/vnd.ms-excel');
+  header('Content-Disposition: attachment;filename="queen-rankings-exports.xls"');
+  header('Cache-Control: max-age=0'); 
+  
+  $excel->getActiveSheet()->setTitle('Test Stats');
+
+  $excel->setActiveSheetIndex(0);
+  $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel5'); 
+
+	$round = 'Round ' . variable_get('current_round_master', 1);
+	$col = 0;
+  $excel->getActiveSheet()->setCellValueByColumnAndRow($col, 1, $round);
+	foreach($header as $judge => $judgeVal){
+		$excel->getActiveSheet()->setCellValueByColumnAndRow($col, 2, $judgeVal);
+		$col++;
+	}
+
+	foreach($judgeArray as $judge_id => $judgeName){
+    $ranking = NULL;
+
+  	foreach($allVotesArray as $vote){
+      $ranking = $vote['field_ranking'];
+      $entrantNumber = $vote['field_entrant_number'];
+      $voteNodeID = $vote['node_id'];
+      if($vote['uid'] == $judge_id){
+			  $setups[$entrantNumber][$judge_id] = array(
+          'ranking' => $ranking,
+          'nodeID' => $voteNodeID,
+        );
+      }elseif(!isset($setups[$entrantNumber][$judge_id])){
+        $setups[$entrantNumber][$judge_id] = NULL;
+      }
+
+  	}
+  }
+	$row2 = 2;
+  foreach($setups as $entrantNumber => $info){
+  	$col2 = 0;
+  	$row2++;
+    $rowInfo = array();
+    $rankTotal = 0;
+    $rankSum = 0;
+    $excel->getActiveSheet()->setCellValueByColumnAndRow($col2, $row2, $entrantNumber);
+    $excel->getActiveSheet()->getColumnDimension('A')->setWidth(15);
+    $col2++;
+    foreach($info as $ranking){
+      if($ranking['ranking'] > 0 && $ranking['ranking'] != 'RC' && $ranking['ranking'] != NULL){
+          $rankTotal += $ranking['ranking'];
+          $rankSum++;
+      }
+      $excel->getActiveSheet()->setCellValueByColumnAndRow($col2, $row2, $ranking['ranking']);
+      $col2++;
+      $rowInfo = number_format($rankTotal / $rankSum, 1);
+      $excel->getActiveSheet()->setCellValueByColumnAndRow($col2, $row2, $rowInfo);
+    }
+  }
+	
+  //Set width for ranking columns
+	for ($cols = 'B'; $cols <= 'ZZ'; $cols++) {
+		$excel->getActiveSheet()->getColumnDimension($cols)->setAutoSize(true);
+	}
+
+  $writer->save('php://output');
+  exit;
+}
+
+
+

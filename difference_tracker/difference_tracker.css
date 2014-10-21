@@ -1,0 +1,203 @@
+/*.form-item-difference-tracker-cron{
+  display: none;
+}
+*/
+a.button-style, 
+input.button-style{
+  display: block;
+  text-decoration: none;
+  font-size: 15px;
+  text-align: center;
+  background-color: #eee;
+  padding: 5px;
+  color: #000;
+  margin: auto;
+}
+
+a.button-style:hover, 
+input.button-style:hover{
+  background-color: #D52A21;
+  color: #fff;
+  text-decoration: none;
+}
+
+.diff-changed{
+  color: red;
+}
+/**
+* Settings Page
+* path: admin/config/content/difference_tracker
+*/
+a.diff-tracker-settings{
+  width: 20%;
+}
+/**
+* Media Guide
+**/
+.page-media-guide .mainContainer{
+
+}
+
+.page-media-guide .subMainContainer{
+  float: none;
+  width: 80%;
+  margin: auto;
+}
+
+.page-media-guide .region-content{
+  float: none;
+  width: auto;
+  min-width: 0px;
+  margin: auto;
+}
+
+.page-media-guide .view-media-guide .views-row{
+  margin: 0px auto 0px auto;
+  clear: both;
+  padding-top: 80px;
+}
+
+.page-media-guide .view-media-guide .views-row-first{
+  padding-top: 0px;
+}
+
+.page-media-guide .view-media-guide .views-field-title{
+/*  clear: left;*/
+  float: left;
+}
+
+.page-media-guide .view-media-guide .views-field-title a{
+  font-weight: bolder;
+  font-size: 25px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.page-media-guide .view-media-guide .views-field-field-media-guide-photo{
+  display: inline-block;
+  float: left;
+  margin: auto 2% auto auto;
+  width: 35%;
+  padding-bottom: 1em;
+}
+
+.page-media-guide .view-media-guide .views-field-field-media-guide-photo img{
+  display: block;
+  height: auto;
+}
+
+.page-media-guide .view-media-guide .views-field-field-differences{
+  float: left;
+  width: 60%;
+  overflow: hidden;
+}
+
+.page-media-guide .view-media-guide .views-field-field-differences .field-content div{
+  
+}
+
+.page-media-guide .field_row{
+  padding: 10px 5px 5px 5px;
+}
+
+.page-media-guide .field_label{
+  display: inline-block;
+  text-transform: uppercase;
+  margin-right: 10px;
+  max-width: 150px;
+  vertical-align: top;
+}
+
+.page-media-guide .field_value{
+  display: inline-block;
+  vertical-align: top;
+}
+
+.page-media-guide .field_row.field_0,
+.page-media-guide .field_row.field_1,
+.page-media-guide .field_row.field_2{
+  background-color: #efedee;
+  font-weight: bold;
+  padding-top: 5px;
+}
+.page-media-guide .field_row.field_0 .field_label,
+.page-media-guide .field_row.field_1 .field_label,
+.page-media-guide .field_row.field_2 .field_label{
+  max-width: none;
+}
+
+.page-media-guide .field_row.field_1{
+  background-color: #f6f6f6;
+}
+
+.page-media-guide .hidden{
+  display: none;
+}
+
+.page-media-guide .media-button{
+  cursor: pointer;
+  background-color: #c4241f;
+  border: 1px solid #bf0000;
+  padding: 5px 30px 5px 30px;
+  color: #ffffff;
+  text-transform: uppercase;
+  display: inline-block;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.page-media-guide .showHiddenFieldsContainer{
+  text-align: center;
+}
+
+.page-media-guide .view-header{
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.page-media-guide .prettyTitle{
+  background-color: #f6f6f6;
+  color: #bf0000;
+  text-transform: uppercase;
+  padding: 10px;
+  text-align: left;
+  font-size: 18px;
+}
+
+.page-media-guide .view-header .media-button{
+  margin-top: 5px;
+}
+
+.page-media-guide .file-icon{
+  display: none;
+}
+
+.page-media-guide .views-field-field-media-guide-photo-1 {
+  vertical-align: top;
+  float: left;
+}
+
+.page-media-guide .views-field-field-media-guide-photo-1 .file a{
+  text-indent: -9999px;
+  background-image: url('images/download.png');
+  display: inline-block;
+  color: transparent;
+  width: 45px;
+  height: 45px;
+}
+
+@media print{
+  #toolbar,
+  .region-header,
+  .region-menubar,
+  .tabContainer,
+  .region-slideshowheader,
+  .page-media-guide .media-button,
+  .sidebar-first .region-sidebar-first{
+    display: none !important;
+  }
+
+  .page-media-guide .hidden{
+    display: block;
+  }
+}

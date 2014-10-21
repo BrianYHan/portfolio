@@ -1,0 +1,64 @@
+<?php
+/**
+* Implements hook_block_info().
+*/
+function queen_and_court_user_block_block_info() {
+  $blocks = array();
+  $blocks['User Menu Block'] = array(
+    'info' => t('Custom User Menu Block'),
+  );
+  return $blocks;
+}
+
+/**
+* Implements hook_block_view().
+*/
+function queen_and_court_user_block_block_view($delta = '') {
+
+  $block = array();
+  switch ($delta) {
+    case 'User Menu Block':
+      $block['subject'] = '';
+      $block['content'] = queen_and_court_user_block_callback();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Call back function for block 
+ */
+function queen_and_court_user_block_callback() {
+  global $user;
+
+  $uid = $user->uid;
+  $output = '<ul>';
+  $userNodeSearch = new EntityFieldQuery(); 
+  $userNodeSearchResult = $userNodeSearch->entityCondition('entity_type', 'node')
+    ->propertyCondition('uid', $uid)
+    ->propertyCondition('type', 'display_application', '<>')
+    ->execute();
+  if(count($userNodeSearchResult) == 0){
+    $output .= '<li>' . l(t("Start Application"), "node/add") . '</li>';
+  }
+  else{
+    foreach($userNodeSearchResult['node'] as $nid => $nodeInfo){
+      $nodeLoaded = node_load($nid);
+      $nodeInfoWrapper = entity_metadata_wrapper('node', $nodeLoaded);
+      $workflowState = $nodeInfoWrapper->workflow_state_name->value();
+      if($workflowState == 'In Draft'){
+        $gotolink = 'node/' . $nid . '/edit';
+      }
+      else{
+        $gotolink = 'application-under-review';
+      }
+    }
+    $output .= '<li>' . l(t("Open Applications"), $gotolink) . '</li>';  
+  }
+  //$output .= '<li>' . l(t("Help"), "help") . '</li>';
+  $output .= '<li>' . l(t("Logout"), "user/logout") . '</li>';
+  $output .= '</ul>';
+
+  return $output;
+}
+   
