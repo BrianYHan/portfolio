@@ -1,0 +1,2891 @@
+<?php
+/**
+ * @file
+ * The main file for the Queen & Court module.
+ */
+
+/**
+ * Implements hook_menu
+ */
+function queen_court_menu(){
+  $items = array();
+
+  $items['admin/config/qc'] = array(
+    'title' => 'Queen and Court Settings',
+    'page callback' => 'queen_court_admin_menu_block_page',
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/qc/settings'] = array(
+    'title' => 'General Settings',
+    'description' => 'Settings that affect the entirety of the Queen and Court selection process.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_general_settings_form'),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  // ROUND MANAGMENT
+  $items['admin/config/qc/round/add'] = array(
+    'title' => 'Queen and Court Round',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_round_edit_form', 4),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/config/qc/round/%'] = array(
+    'title' => 'Queen and Court Round',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_round_edit_form', 4, 5),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // SCORE MANAGMENT
+  $items['admin/config/qc/score/add'] = array(
+    'title' => 'Queen and Court Score',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_score_edit_form', 4),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/config/qc/score/%'] = array(
+    'title' => 'Queen and Court Score',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_score_edit_form', 4, 5),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // APPLICANT MANAGMENT
+  $items['admin/config/qc/applicant/add'] = array(
+    'title' => 'Queen and Court Applicant',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_applicant_edit_form', 4),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/config/qc/applicant/%'] = array(
+    'title' => 'Queen and Court Applicant',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_applicant_edit_form', 4, 5),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // VOTE MANAGMENT
+  $items['admin/config/qc/vote/add'] = array(
+    'title' => 'Queen and Court Vote',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_vote_edit_form', 4),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/config/qc/vote/%'] = array(
+    'title' => 'Queen and Court Vote',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_vote_edit_form', 4, 5),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // LOOKUPS
+  $items['admin/config/qc/lookup/%/%'] = array(
+    'page callback' => 'queen_court_autocomplete',
+    'page arguments' => array(4, 5),
+    'access arguments' => array('administer queen and court settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // Judge Master Review
+  $items['qac/review'] = array(
+    'page callback' => 'queen_court_review_page',
+    'access arguments' => array('edit queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/review/%/%/%/%'] = array(
+    'page callback' => 'queen_court_review_page_ajax',
+    'page arguments' => array(2, 3, 4, 5),
+    'access arguments' => array('edit queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/close-round'] = array(
+    'page callback' => 'queen_court_close_round',
+    'access arguments' => array('edit queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // TofR Master Review
+  $items['qac/tofr-review'] = array(
+    'page callback' => 'queen_court_tofr_review_page',
+    'access arguments' => array('administer queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/tofr-review/%/%'] = array(
+    'page callback' => 'queen_court_tofr_review_page_ajax',
+    'page arguments' => array(2, 3),
+    'access arguments' => array('administer queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/sports-systems'] = array(
+    'page callback' => 'queen_court_send_to_sports_systems',
+    'access arguments' => array('administer queen and court results'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // Judge Entry
+  $items['qac'] = array(
+    'page callback' => 'queen_court_entry_page',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('add queen and court votes'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/vote/%/%/%/%'] = array(
+    'page callback' => 'queen_court_entry_page_ajax',
+    'page arguments' => array(2, 3, 4, 5),
+    'access arguments' => array('add queen and court votes'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/import'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('queen_court_import_form'),
+    'access arguments' => array('import queen and court information'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/check-in'] = array(
+    'page callback' => 'queen_court_check_in',
+    'access arguments' => array('check in queen and court applicants'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/check-in/search/%'] = array(
+    'page callback' => 'queen_court_check_in_autocomplete',
+    'page arguments' => array(3),
+    'access arguments' => array('check in queen and court applicants'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['qac/check-in/get-number/%'] = array(
+    'page callback' => 'queen_court_check_in_number',
+    'page arguments' => array(3),
+    'access arguments' => array('check in queen and court applicants'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission
+ */
+function queen_court_permission(){
+  return array(
+    'administer queen and court settings' => array(
+      'title' => t('Administer Queen And Court Settings'),
+      'restrict access' => TRUE,
+    ),
+    'edit queen and court results' => array(
+      'title' => t('Edit Queen and Court Results'),
+      'description' => t('Typically reserved for master judges.'),
+      'restrict access' => TRUE,
+    ),
+    'administer queen and court results' => array(
+      'title' => t('Administer Queen and Court Results'),
+      'description' => t('Typically reserved for TofR Administrators.'),
+      'restrict access' => TRUE,
+    ),
+    'add queen and court votes' => array(
+      'title' => t('Add Queen and Court Votes'),
+      'description' => t('Typically reserved for judges.'),
+    ),
+    'import queen and court information' => array(
+      'title' => t('Import Queen And Court Information'),
+      'restrict access' => TRUE,
+    ),
+    'check in queen and court applicants' => array(
+      'title' => t('Check In Queen And Court Applicants'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Callback for the admin pages. This is a dummy.
+ */
+function queen_court_admin_menu_block_page(){
+  $item = menu_get_item();
+  if ($content = system_admin_menu_block($item)) {
+    $output = theme('admin_block_content', array('content' => $content));
+  }
+  else {
+    $output = t('You do not have any administrative items.');
+  }
+  return $output;
+}
+
+/**
+ * Callback for the admin settings form.
+ */
+function queen_court_general_settings_form(){
+  $form = array();
+
+  $form['queen_court_numbers_to_skip'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Numbers to Skip'),
+    '#description' => t('These are the numbers that we will be skipping when assigning the applicants their numbers.'),
+    '#default_value' => implode("\n", variable_get('queen_court_numbers_to_skip', '')),
+  );
+
+  // Load the rounds.
+  $rounds = array();
+  $selectedRound = 0;
+
+  // Query!
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_round')
+    ->propertyCondition('year', date('Y'))
+    ->execute();
+
+  // Get them in the array to show in the form.
+  foreach($queryResult['queen_court_round'] as $record){
+    $entity = entity_load('queen_court_round', array($record->rid));
+    $entity = reset($entity);
+    $rounds[$record->rid] = $entity->name;
+    if($entity->status == 1){
+      $selectedRound = $entity->status;
+    }
+  }
+
+  $form['current_round'] = array(
+    '#type' => 'select',
+    '#options' => $rounds,
+    '#title' => t('Current Round'),
+    '#description' => t('What round are we looking at right now?'),
+    '#default_value' => $selectedRound,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Settings'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate
+ * for queen_court_general_settings_form
+ */
+function queen_court_general_settings_form_validate($form, $form_state){
+}
+
+/**
+ * Implements hook_form_submit
+ * for queen_court_general_settings_form
+ */
+function queen_court_general_settings_form_submit($form, $form_state){
+  // Process the numbers to skip.
+  $numbersToSkip = array_filter(preg_split('/[^0-9]/', $form_state['values']['queen_court_numbers_to_skip']), 'strlen');
+  variable_set('queen_court_numbers_to_skip', $numbersToSkip);
+
+  // Save the current round.
+  // We've got to set all the rounds to status 0 first.
+  $entities = entity_load('queen_court_round');
+  foreach($entities as $entity){
+    $entity->status = 0;
+    $entity->save();
+  }
+
+  // Now set the current one.
+  $entity = entity_load('queen_court_round', array($form_state['values']['current_round']));
+  if(count($entity) > 0){
+    $entity = reset($entity);
+    $entity->status = 1;
+    $entity->save();
+  }
+
+  drupal_set_message(t('Options saved.'));
+  watchdog('queen_court', 'Options Saved.');
+}
+
+/**
+ * Callback for the round editing form.
+ */
+function queen_court_round_edit_form($form, $form_state, $rid = 0, $action = 'edit'){
+  $form = array();
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#required' => true,
+  );
+
+  $form['year'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => t('Year'),
+    '#maxlength' => 4,
+    '#size' => 4,
+  );
+
+  $form['status'] = array(
+    '#type' => 'select',
+    '#options' => queen_court_round_status_options(),
+    '#title' => t('Status'),
+  );
+
+  $form['stage'] = array(
+    '#type' => 'select',
+    '#options' => queen_court_round_stage_options(),
+    '#title' => t('Stage'),
+  );
+
+  $entity = entity_load('queen_court_round', array($rid));
+  if(count($entity) > 0){
+    $entity = reset($entity);
+    
+    foreach($form as $key => $default){
+      $form[$key]['#default_value'] = $entity->$key;
+    }
+  }
+
+  if($rid == 'add'){
+    $rid = 0;
+  }
+
+  $form['rid'] = array(
+    '#type' => 'hidden',
+    '#value' => $rid,
+  );
+
+  $form['action'] = array(
+    '#type' => 'hidden',
+    '#value' => $action,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate
+ * for queen_court_round_edit_form
+ */
+function queen_court_round_edit_form_validate($form, $form_state){
+  if(preg_match('/[^0-9]/', $form_state['values']['year'])){
+    form_set_error('year', t('Must be a year.'));
+  }
+}
+
+/**
+ * Implements hook_form_submit
+ * for queen_court_round_edit_form
+ */
+function queen_court_round_edit_form_submit($form, $form_state){
+  if($entity = queen_court_crud(array(
+    'entity_type' => 'queen_court_round',
+    'entity_id_name' => 'rid',
+    'rid' => $form_state['values']['rid'],
+    'name' => $form_state['values']['name'],
+    'year' => $form_state['values']['year'],
+    'status' => $form_state['values']['status'],
+    'stage' => $form_state['values']['stage'],
+  ))){
+    if($form_state['values']['rid']){
+      drupal_set_message(t('Round Edited'));
+    }else{
+      drupal_set_message(t('Round Added'));
+    }
+  }else{
+    drupal_set_message(t('There was an error while adding or editing this round.'), 'error');
+  }
+
+  watchdog('queen_court', 'Round ID @id Added/Edited via Admin Interface.', array('@id' => $entity->rid));
+  drupal_goto('admin/config/qc/round');  
+}
+
+/**
+ * Callback for the score editing form.
+ */
+function queen_court_score_edit_form($form, $form_state, $sid = 0, $action = 'edit'){
+  $form = array();
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Display Name'),
+    '#required' => true,
+  );
+
+  $form['weight'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => t('Weight'),
+    '#maxlength' => 4,
+    '#size' => 4,
+  );
+
+  $form['status'] = array(
+    '#type' => 'select',
+    '#options' => queen_court_score_status_options(),
+    '#title' => t('Status'),
+    '#default_value' => 1,
+  );
+
+  // Load the default values.
+  $entity = entity_load('queen_court_score', array($sid));
+  if(count($entity) > 0){
+    $entity = reset($entity);
+    
+    foreach($form as $key => $default){
+      $form[$key]['#default_value'] = $entity->$key;
+    }
+  }
+
+  if($sid == 'add'){
+    $sid = 0;
+  }
+
+  $form['sid'] = array(
+    '#type' => 'hidden',
+    '#value' => $sid,
+  );
+
+  $form['action'] = array(
+    '#type' => 'hidden',
+    '#value' => $action,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate
+ * for queen_court_score_edit_form
+ */
+function queen_court_score_edit_form_validate($form, $form_state){
+  if(preg_match('/[^0-9\-]/', $form_state['values']['weight'])){
+    form_set_error('year', t('Must be a number.'));
+  }
+}
+
+/**
+ * Implements hook_form_submit
+ * for queen_court_score_edit_form
+ */
+function queen_court_score_edit_form_submit($form, $form_state){
+  if($entity = queen_court_crud(array(
+    'entity_type' => 'queen_court_score',
+    'entity_id_name' => 'sid',
+    'sid' => $form_state['values']['sid'],
+    'name' => $form_state['values']['name'],
+    'weight' => $form_state['values']['weight'],
+    'status' => $form_state['values']['status'],
+  ))){
+    if($form_state['values']['sid']){
+      drupal_set_message(t('Score Edited'));
+    }else{
+      drupal_set_message(t('Score Added'));
+    }
+  }else{
+    drupal_set_message(t('There was an error while adding or editing this score.'), 'error');
+  }
+
+  watchdog('queen_court', 'Score ID @id Added/Edited via Admin Interface.', array('@id' => $entity->sid));
+  drupal_goto('admin/config/qc/score');
+}
+
+/**
+ * Callback for the score editing form.
+ */
+function queen_court_applicant_edit_form($form, $form_state, $aid = 0, $action = 'edit'){
+  $form = array();
+
+  $form['first_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('First Name'),
+    '#required' => true,
+  );
+
+  $form['last_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Last Name'),
+    '#required' => true,
+  );
+
+  $form['tofr_number'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => t('Tournament of Roses Number'),
+    '#maxlength' => 4,
+    '#size' => 4,
+  );
+
+  $form['sports_systems_number'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => t('Sports Systems Number'),
+    '#maxlength' => 9,
+    '#size' => 9,
+  );
+
+  $form['year'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => t('Year'),
+    '#default_value' => date('Y'),
+    '#maxlength' => 4,
+    '#size' => 4,
+  );
+
+  $form['status'] = array(
+    '#type' => 'select',
+    '#options' => queen_court_applicant_status_options(),
+    '#title' => t('Status'),
+    '#default_value' => 1,
+  );
+
+  // Load the default values.
+  $entity = entity_load('queen_court_applicant', array($aid));
+  if(count($entity) > 0){
+    $entity = reset($entity);
+    
+    foreach($form as $key => $default){
+      $form[$key]['#default_value'] = $entity->$key;
+    }
+  }
+
+  if($aid == 'add'){
+    $aid = 0;
+  }
+
+  $form['aid'] = array(
+    '#type' => 'hidden',
+    '#value' => $aid,
+  );
+
+  $form['action'] = array(
+    '#type' => 'hidden',
+    '#value' => $action,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate
+ * for queen_court_applicant_edit_form
+ */
+function queen_court_applicant_edit_form_validate($form, $form_state){
+  if(preg_match('/[^0-9\-]/', $form_state['values']['tofr_number'])){
+    form_set_error('tofr_number', t('Must be a number.'));
+  }
+
+  if(preg_match('/[^0-9\-]/', $form_state['values']['sports_systems_number'])){
+    form_set_error('sports_systems_number', t('Must be a number.'));
+  }
+
+  if(preg_match('/[^0-9\-]/', $form_state['values']['year'])){
+    form_set_error('year', t('Must be a number.'));
+  }
+}
+
+/**
+ * Implements hook_form_submit
+ * for queen_court_applicant_edit_form
+ */
+function queen_court_applicant_edit_form_submit($form, $form_state){
+  $name = $form_state['values']['first_name'] . ' ' . $form_state['values']['last_name'];
+  if($entity = queen_court_crud(array(
+    'entity_type' => 'queen_court_applicant',
+    'entity_id_name' => 'aid',
+    'aid' => $form_state['values']['aid'],
+    'name' => $name,
+    'first_name' => $form_state['values']['first_name'],
+    'last_name' => $form_state['values']['last_name'],
+    'year' => $form_state['values']['year'],
+    'tofr_number' => $form_state['values']['tofr_number'],
+    'sports_systems_number' => $form_state['values']['sports_systems_number'],
+    'status' => $form_state['values']['status'],
+  ))){
+    if($form_state['values']['aid']){
+      drupal_set_message(t('Applicant Edited'));
+    }else{
+      drupal_set_message(t('Applicant Added'));
+    }
+  }else{
+    drupal_set_message(t('There was an error while adding or editing this applicant.'), 'error');
+  }
+
+  watchdog('queen_court', 'Applicant ID @id Added/Edited via Admin Interface.', array('@id' => $entity->aid));
+  drupal_goto('admin/config/qc/applicant');
+}
+
+/////////////////////////////////////
+
+/**
+ * Callback for the score editing form.
+ */
+function queen_court_vote_edit_form($form, $form_state, $vid = 0, $action = 'edit'){
+  $form = array();
+
+  $form['aid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Applicant'),
+    '#description' => t('The applicant\'s TofR Number'),
+    '#required' => true,
+    '#autocomplete_path' => 'admin/config/qc/lookup/applicant',
+  );
+
+  $form['uid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Judge'),
+    '#required' => true,
+    '#autocomplete_path' => 'admin/config/qc/lookup/judge',
+  );
+
+  $roundOptions = array();
+
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_round')
+    ->execute();
+
+  // Get them in the array to show in the form.
+  foreach($queryResult['queen_court_round'] as $key => $record){
+    $row = entity_load('queen_court_round', array($key));
+    $row = reset($row);
+    $roundOptions[$row->rid] = $row->name;
+  }
+
+  $form['rid'] = array(
+    '#type' => 'select',
+    '#title' => t('Round'),
+    '#options' => $roundOptions,
+  );
+
+  $scoreOptions = array();
+
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_score')
+    ->execute();
+
+  // Get them in the array to show in the form.
+  foreach($queryResult['queen_court_score'] as $key => $record){
+    $row = entity_load('queen_court_score', array($key));
+    $row = reset($row);
+    $scoreOptions[$row->sid] = $row->name;
+  }
+
+  $form['sid'] = array(
+    '#type' => 'select',
+    '#title' => t('Score'),
+    '#options' => $scoreOptions,
+  );
+
+  $form['status'] = array(
+    '#type' => 'select',
+    '#options' => queen_court_vote_status_options(),
+    '#title' => t('Status'),
+    '#default_value' => 1,
+  );
+
+  // Load the default values.
+  $entity = entity_load('queen_court_vote', array($vid));
+  if(count($entity) > 0){
+    $entity = reset($entity);
+    
+    foreach($form as $key => $default){
+      $form[$key]['#default_value'] = $entity->$key;
+    }
+  }
+
+  if($vid == 'add'){
+    $vid = 0;
+  }
+
+  $form['vid'] = array(
+    '#type' => 'hidden',
+    '#value' => $vid,
+  );
+
+  $form['action'] = array(
+    '#type' => 'hidden',
+    '#value' => $action,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_validate
+ * for queen_court_vote_edit_form
+ */
+function queen_court_vote_edit_form_validate($form, $form_state){
+}
+
+/**
+ * Implements hook_form_submit
+ * for queen_court_vote_edit_form
+ */
+function queen_court_vote_edit_form_submit($form, $form_state){
+  if($entity = queen_court_crud(array(
+    'entity_type' => 'queen_court_vote',
+    'entity_id_name' => 'vid',
+    'vid' => $form_state['values']['vid'],
+    'aid' => $form_state['values']['aid'],
+    'uid' => $form_state['values']['uid'],
+    'rid' => $form_state['values']['rid'],
+    'sid' => $form_state['values']['sid'],
+    'status' => $form_state['values']['status'],
+  ))){
+    if($form_state['values']['vid']){
+      drupal_set_message(t('Vote Edited'));
+    }else{
+      drupal_set_message(t('Vote Added'));
+    }
+  }else{
+    drupal_set_message(t('There was an error while adding or editing this vote.'), 'error');
+  }
+
+  watchdog('queen_court', 'Vote ID @id Added/Edited via Admin Interface.', array('@id' => $entity->vid));
+  drupal_goto('admin/config/qc/vote');
+}
+
+/**
+ * Callback for the autocomplete
+ */
+function queen_court_autocomplete($type, $search = ''){
+  $matches = array();
+  if($type == 'applicant'){
+    $type = 'queen_court_applicant';
+    $searchKey = 'tofr_number';
+    $entityKey = 'aid';
+    $outputField = 'tofr_number';
+  }elseif($type == 'judge'){
+    $type = 'user';
+    $searchKey = 'name';
+    $entityKey = 'uid';
+    $outputField = 'name';
+  }else{
+    return drupal_json_output(array());
+  }
+
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', $type)
+    ->propertyCondition($searchKey, $search, 'CONTAINS')
+    ->execute();
+
+  // Get them in the array to show in the form.
+  foreach($queryResult[$type] as $key => $record){
+    $row = entity_load($type, array($key));
+    $row = reset($row);
+    $matches[$row->$entityKey] = $row->$outputField;
+  }
+
+  return drupal_json_output($matches);
+
+  return '';
+}
+
+/**
+ * Overall CRUD
+ */
+function queen_court_crud($options){
+  if(!isset($options['entity_type']) || !isset($options['entity_id_name'])){
+    drupal_set_message('There was an error saving this item.', 'error');
+    return false;
+  }
+
+  // If the round doesn't exist, add it. Otherwise, load it.
+  if($options[$options['entity_id_name']]){
+    $entity = entity_load($options['entity_type'], array($options[$options['entity_id_name']]));
+    $entity = reset($entity);
+  }else{
+    $entity = entity_create($options['entity_type'], array());
+    $entity->created = REQUEST_TIME;
+  }
+
+  // Get the field names for this entity
+  $properties = entity_get_property_info($options['entity_type']);
+  $fields = array();
+  foreach($properties['properties'] as $key => $value){
+    $fields[$key] = $key;
+  }
+  unset($properties);
+  
+  foreach($options as $key => $value){
+    if(isset($fields[$key])){
+      $entity->$key = $value;
+    }
+  }
+
+  $entity->updated = REQUEST_TIME;
+
+  $entity->save();
+  return $entity;
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function queen_court_entity_info() { 
+  $return = array(
+    'queen_court_round' => array(
+      'label' => t('Queen and Court Round'),
+      'controller class' => 'EntityAPIController', 
+      'entity class' => 'QueenCourtRound',
+      'base table' => 'queen_court_round',
+      'fieldable' => TRUE,
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'rid',
+        'status' => 'status',
+        'label' => 'name',
+      ),
+      'module' => 'queen_court',
+      'bundle keys' => array( 
+        'bundle' => 'name',
+      ),
+      'bundles' => array(
+        'queen_court_round' => array( 
+          'label' => t('Round'),
+        ), 
+      ),
+      'view modes' => array(
+        'full' => array(
+          'label'=> t('On form'), 
+          'custom settings' => FALSE,
+        ),
+      ),
+    ),
+    'queen_court_score' => array(
+      'label' => t('Queen and Court Score'),
+      'controller class' => 'EntityAPIController', 
+      'entity class' => 'QueenCourtScore',
+      'base table' => 'queen_court_score',
+      'fieldable' => TRUE,
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'sid',
+        'status' => 'status',
+        'label' => 'name',
+      ),
+      'module' => 'queen_court',
+      'bundle keys' => array( 
+        'bundle' => 'name',
+      ),
+      'bundles' => array(
+        'queen_court_score' => array( 
+          'label' => t('Score'),
+        ), 
+      ),
+      'view modes' => array(
+        'full' => array(
+          'label'=> t('On form'), 
+          'custom settings' => FALSE,
+        ),
+      ),
+    ),
+    'queen_court_applicant' => array(
+      'label' => t('Queen and Court Applicant'),
+      'controller class' => 'EntityAPIController', 
+      'entity class' => 'QueenCourtApplicant',
+      'base table' => 'queen_court_applicant',
+      'fieldable' => TRUE,
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'aid',
+        'status' => 'status',
+        'label' => 'name',
+      ),
+      'module' => 'queen_court',
+      'bundle keys' => array( 
+        'bundle' => 'name',
+      ),
+      'bundles' => array(
+        'queen_court_applicant' => array( 
+          'label' => t('Applicant'),
+        ), 
+      ),
+      'view modes' => array(
+        'full' => array(
+          'label'=> t('On form'), 
+          'custom settings' => FALSE,
+        ),
+      ),
+    ),
+    'queen_court_vote' => array(
+      'label' => t('Queen and Court Vote'),
+      'controller class' => 'EntityAPIController', 
+      'entity class' => 'QueenCourtVote',
+      'base table' => 'queen_court_vote',
+      'fieldable' => TRUE,
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'vid',
+        'status' => 'status',
+        'label' => 'name',
+      ),
+      'module' => 'queen_court',
+      'bundle keys' => array( 
+        'bundle' => 'name',
+      ),
+      'bundles' => array(
+        'queen_court_vote' => array( 
+          'label' => t('Vote'),
+        ), 
+      ),
+      'view modes' => array(
+        'full' => array(
+          'label'=> t('On form'), 
+          'custom settings' => FALSE,
+        ),
+      ),
+    ),
+  );
+  return $return; 
+}
+
+/**
+ * Implements hook_entity_property_info_alter
+ *
+ */
+function queen_court_entity_property_info_alter(&$info){
+  // Round Properties
+  $roundProperties = &$info['queen_court_round']['properties'];
+  $roundProperties['created']['label'] = t('Created');
+  $roundProperties['created']['description'] = t('The date this round was created.');
+  $roundProperties['created']['type'] = 'date';
+  
+  $roundProperties['updated']['label'] = t('Updated');
+  $roundProperties['updated']['description'] = t('The date this round was updated.');
+  $roundProperties['updated']['type'] = 'date';
+
+  $roundProperties['status']['options list'] = 'queen_court_round_status_options';
+
+  // Score Properties
+  $scoreProperties = &$info['queen_court_score']['properties'];
+  $scoreProperties['created']['description'] = t('The date this score was created.');
+  $scoreProperties['created']['type'] = 'date';
+  
+  $scoreProperties['updated']['label'] = t('Updated');
+  $scoreProperties['updated']['description'] = t('The date this score was updated.');
+  $scoreProperties['updated']['type'] = 'date';
+
+  $scoreProperties['status']['options list'] = 'queen_court_score_status_options';
+
+  // Applicant Properties
+  $applicantProperties = &$info['queen_court_applicant']['properties'];
+  $applicantProperties['created']['label'] = t('Created');
+  $applicantProperties['created']['description'] = t('The date this applicant was created.');
+  $applicantProperties['created']['type'] = 'date';
+  
+  $applicantProperties['updated']['label'] = t('Updated');
+  $applicantProperties['updated']['description'] = t('The date this applicant was updated.');
+  $applicantProperties['updated']['type'] = 'date';
+
+  $applicantProperties['weight']['type'] = 'integer';
+  $applicantProperties['weight']['schema field'] = 'weight';
+  $applicantProperties['weight']['label'] = 'Weight';
+
+  $applicantProperties['status']['options list'] = 'queen_court_applicant_status_options';
+
+  // Vote Properties
+  $voteProperties = &$info['queen_court_vote']['properties'];
+  $voteProperties['created']['label'] = t('Created');
+  $voteProperties['created']['description'] = t('The date this vote was created.');
+  $voteProperties['created']['type'] = 'date';
+  
+  $voteProperties['updated']['label'] = t('Updated');
+  $voteProperties['updated']['description'] = t('The date this vote was updated.');
+  $voteProperties['updated']['type'] = 'date';
+
+  $voteProperties['aid']['label'] = t('Applicant');
+  $voteProperties['aid']['type'] = 'queen_court_applicant';
+  
+  $voteProperties['uid']['label'] = t('Judge');
+  $voteProperties['uid']['description'] = t('The judge who has created the vote.');
+  $voteProperties['uid']['type'] = 'user';
+
+  $voteProperties['rid']['label'] = t('Round');
+  $voteProperties['rid']['type'] = 'queen_court_round';
+
+  $voteProperties['sid']['label'] = t('Score');
+  $voteProperties['sid']['type'] = 'queen_court_score';
+
+  $voteProperties['status']['options list'] = 'queen_court_vote_status_options';
+}
+
+/**
+ * Callback for the options list for status options.
+ */
+function queen_court_round_status_options(){
+  return array(
+    0 => 'Non-Current Round',
+    1 => 'Current Round',
+  );
+}
+
+/**
+ * Callback for the options list for stage options.
+ */
+function queen_court_round_stage_options(){
+  return array(
+    0 => 'Closed',
+    1 => 'Judging',
+    2 => 'TofR Review',
+  );
+}
+
+/**
+ * Callback for the options list for status options.
+ */
+function queen_court_score_status_options(){
+  return array(
+    0 => 'Inactive',
+    1 => 'Active',
+  );
+}
+
+/**
+ * Callback for the options list for status options.
+ */
+function queen_court_applicant_status_options(){
+  return array(
+    0 => 'Inactive',
+    1 => 'Active',
+  );
+}
+
+/**
+ * Callback for the options list for status options.
+ */
+function queen_court_vote_status_options(){
+  return array(
+    0 => 'Inactive',
+    1 => 'Active',
+  );
+}
+
+/**
+ * Callback for the review page.
+ */
+function queen_court_review_page() {
+  $startTime = microtime(true);
+  $startTime2 = microtime(true);
+  $rows = array();
+
+  // Preload the scores BY ROUND.
+  $result = db_query("SELECT a.aid, v.rid, round(avg(s.name),3) as score
+  FROM queen_court_vote v
+  LEFT JOIN queen_court_applicant a ON v.aid = a.aid
+  LEFT JOIN queen_court_score s ON v.sid = s.sid
+  LEFT JOIN queen_court_round r ON v.rid = r.rid
+  WHERE r.year = :year
+  GROUP BY v.rid, v.aid
+  ORDER BY v.rid, a.aid", array(
+    ":year" => date('Y'),
+  ));
+
+  $oldRounds = array();
+
+  foreach($result as $record){
+    $oldRounds[$record->aid][$record->rid] = $record->score;
+  }
+  
+
+
+  // Preload the scores.
+  // Query!
+  $scores = array();
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_score')
+    ->propertyCondition('status', 1)
+    ->execute();
+
+  if(isset($queryResult['queen_court_score'])){
+    foreach($queryResult['queen_court_score'] as $key=>$score){
+      $entity = entity_load('queen_court_score', array($key));
+      $entity = reset($entity);
+      $sid = $entity->sid;
+      $name = $entity->name;
+      $scores[$sid] = $name;
+    }
+  }else{
+    return t('No scores are currently set as active.');
+  }
+  
+
+  // What round are we on?
+  // Query!
+  $roundEntity = queen_court_load_round(1);
+  if(!$roundEntity){
+    return t('No round available.');
+  }
+  
+  drupal_set_title($roundEntity->name);
+  $rid = $roundEntity->rid;
+
+  // Load all the applicants.
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_applicant')
+    ->propertyCondition('status', 1)
+    ->propertyCondition('year', date('Y'))
+    ->propertyCondition('tofr_number', 0, '<>');
+    // ->range(0, 10)
+
+  // Round 1
+  $cutOff = 250;
+  if($roundEntity->name == 'Round 2'){
+    $queryResult->propertyCondition('advance_to_round_2', 1);
+    $queryResult->propertyCondition('check_in_to_round_2', 0, '>');
+    $cutOff = 75;
+  }elseif($roundEntity->name == 'Round 3'){
+    $queryResult->propertyCondition('advance_to_round_3', 1);
+    $queryResult->propertyCondition('check_in_to_round_3', 0, '>');
+    $cutOff = 35;
+  }elseif($roundEntity->name == 'Round 4'){
+    $queryResult->propertyCondition('advance_to_round_4', 1);
+    $queryResult->propertyCondition('check_in_to_round_4', 0, '>');
+    $cutOff = 10;
+  }else{
+    return t('There was an error.');
+  }
+
+  $queryResult = $queryResult->execute();
+
+  if(isset($queryResult['queen_court_applicant'])){
+    $applicantArray = array();
+    
+    foreach($queryResult['queen_court_applicant'] as $key => $value){
+      $applicantArray[$key] = $key;
+    }
+    $voteEntity = entity_load('queen_court_applicant', $applicantArray);
+  }else{
+    return t('There are no applicants to tabulate.');
+  }
+  
+  $applicants = array();
+  foreach($voteEntity as $aid => $entity){
+    $applicants[$aid] = $entity->tofr_number;
+  }
+  
+
+  // Load the Votes
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_vote')
+    ->propertyCondition('rid', $roundEntity->rid)
+    ->propertyCondition('status', 1)
+    // ->range(0, 1000)
+    ->execute();
+
+  if(isset($queryResult['queen_court_vote'])){
+    $voteArray = array();
+    
+    foreach($queryResult['queen_court_vote'] as $key=>$value){
+      $voteArray[$key] = $key;
+    }
+    
+    //$voteEntity = entity_load('queen_court_vote', $voteArray);
+    $voteEntity = db_query("SELECT vid, uid, aid, sid FROM {queen_court_vote} WHERE vid IN (:uidList)", array(
+      ":uidList" => $voteArray,
+    ));
+    
+  }else{
+    return t('There are no votes to tabulate.');
+  }
+
+  // Preload all the users in the system. For now.
+  $users = entity_load('user');
+  foreach($users as $uid => $user){
+    $firstName = field_get_items('user', $user, 'field_first_name');
+    $lastName = field_get_items('user', $user, 'field_last_name');
+    $userArray[$uid] = substr($firstName[0]['safe_value'], 0, 1) . '. ' . substr($lastName[0]['safe_value'], 0, 1) . '.';
+  }
+
+  // Get all the judges that have voted.
+  // Compile all the votes by AID, then by UID.
+  $tableScoreTotalArray = array();
+  $tableCountTotalArray = array();
+
+  $judgeArray = array();
+  foreach($voteEntity as $vid => $vote){
+    $judgeArray[$vote->uid] = $userArray[$vote->uid];
+
+    $aid = $vote->aid;
+    $uid = $vote->uid;
+    $sid = $vote->sid;
+    $score = $scores[$sid];
+
+    if(!isset($tableScoreTotalArray[$aid])){
+      $tableScoreTotalArray[$aid] = 0;
+    }
+
+    if($score == 'DQ'){
+      $tableScoreTotalArray[$aid] -= 1000000;
+    }elseif($score == 'RC'){
+      // Do nothing.
+    }else{
+      if(!isset($tableScoreTotalArray[$aid])){
+        $tableScoreTotalArray[$aid] = $score;
+      }else{
+        $tableScoreTotalArray[$aid] += $score;
+      }
+
+      if(!isset($tableCountTotalArray[$aid])){
+        $tableCountTotalArray[$aid] = 1;
+      }else{
+        $tableCountTotalArray[$aid]++;
+      }
+    }
+
+    $tableArray[$aid][$uid] = $score;
+  }
+
+  $header[] = array(
+    'data' => t('TofR #'),
+    'field' => 'tofr_number',
+    'sort' => 'asc',
+  );
+
+  foreach($judgeArray as $uid => $name){
+    $header[] = array(
+      'data' => $name,
+    );
+  }
+
+  $header[] = array(
+    'data' => t('R1'),
+  );
+
+  $header[] = array(
+    'data' => t('R2'),
+  );
+
+  $header[] = array(
+    'data' => t('R3'),
+  );
+
+  $header[] = array(
+    'data' => t('R4'),
+  );
+
+  $header[] = array(
+    'data' => t('Average'),
+    'field' => 'average',
+  );
+
+  if($roundEntity->name != 'Round 4'){
+    $header[] = array(
+      'data' => t('Rank'),
+    );
+  }
+
+  $header[] = array(
+    'data' => t(''),
+  );
+
+  // Lay out the applicant array so that it'll be in order. Assume RC for everything.
+  $tableArray2 = array();
+  foreach($applicants as $aid => $tofr_number){
+    foreach($judgeArray as $uid => $judgeValue){
+      if(isset($tableArray[$aid][$uid])){
+        $tableArray2[$aid][$uid] = $tableArray[$aid][$uid];
+      }else{
+        $tableArray2[$aid][$uid] = '';
+      }
+    }
+  }
+  $tableArray = $tableArray2;
+  unset($tableArray2);
+  
+  $voteEntity = db_query("SELECT vid, uid, aid, sid FROM {queen_court_vote} WHERE vid IN (:uidList)", array(
+    ":uidList" => $voteArray,
+  ));
+
+  // Calculate the averages
+  $tableScoreAverageArray = array();
+  foreach($tableArray as $aid => $value){
+    $tableScoreAverageArray[$aid] = ($tableScoreTotalArray[$aid] / $tableCountTotalArray[$aid]);
+  }
+
+  // Calculate the rankings
+  arsort($tableScoreAverageArray);
+  $tableScoreRankArray = array();
+  $tableScorePassArray = array();
+  $i = 0;
+  $j = 0;
+  $lastRank = 0;
+  $thresholdMet = false;
+  $lastScore = '';
+  foreach($tableScoreAverageArray as $aid => $value){
+    $j++;
+    if(round($value, 3) != $lastScore ){
+      //$i++;
+      $i = $j;
+    }
+
+    $tableScoreRankArray[$aid] = $i;
+
+    if($j > $cutOff && ($lastRank != $tableScoreRankArray[$aid] || $thresholdMet)){
+      $tableScorePassArray[$aid] = 'doNotPass';
+      $thresholdMet = true;
+    }else{
+      $tableScorePassArray[$aid] = 'pass';
+    }
+
+    $lastScore = round($value, 3);
+    $lastRank = $i;
+  }
+
+  // RE-SORT based on the selection!!!
+  $tablesortOrder = tablesort_get_order($header);
+  $tablesortSort = tablesort_get_sort($header);
+
+  if($tablesortOrder['sql'] == ''){
+    $tablesortOrder['sql'] = 'tofr_number';
+    $tablesortSort = 'asc';
+  }
+
+  // Sort the results if it's for an average.
+  if($tablesortOrder['sql'] == 'tofr_number'){
+    foreach($applicants as $aid => $tofr_number){
+      $tableSortArray[$aid] = $tofr_number;
+    }
+  }else{
+    $tableSortArray = $tableScoreAverageArray;
+  }
+
+  // Sort it out.
+  if($tablesortSort == 'desc'){
+    arsort($tableSortArray);
+  }else{
+    asort($tableSortArray);
+  }
+
+  $tableArray2 = array();
+  foreach($tableSortArray as $aid => $score){
+    $tableArray2[$aid] = $tableArray[$aid];
+  }
+  $tableArray = $tableArray2;
+  unset($tableArray2);
+
+  // Put the data together.
+  $rows = array();
+  $j = 0;
+  $lastScore = '';
+  foreach($tableArray as $aid => $judges){
+    $j++;
+    $row = array();
+    
+    $row[] = array('data' => $applicants[$aid]);
+    foreach($judges as $uid => $score){
+      $row[] = array(
+        'data' => $score,
+        'class' => array('editable'),
+        'uid' => $uid,
+      );
+    }
+
+    for($i = 1; $i<=4; $i++){
+      $oldRoundScore = 'N/A';
+      if(isset($oldRounds[$aid][$i])){
+        $oldRoundScore = $oldRounds[$aid][$i];
+      }
+      $row[] = array(
+        'data' => $oldRoundScore,
+      );
+    }
+
+    if($tableScoreTotalArray[$aid] < 0){
+      $row[] = array(
+        'data' => 'DQ',
+        'class' => array('average'),
+      );
+    }else{
+      $row[] = array(
+        'data' => number_format($tableScoreTotalArray[$aid] / $tableCountTotalArray[$aid], 3),
+        'class' => array('average'),
+      );
+      // $row[] = array('data' => $tableScoreTotalArray[$aid] . ' - ' .$tableCountTotalArray[$aid]);
+    }
+    
+    if($roundEntity->name != 'Round 4'){
+      $row[] = array('data' => $tableScoreRankArray[$aid]);
+    }
+
+    $row[] = array(
+      'data' => $j,
+      'class' => array('iterator'),
+    );
+
+    $classArray = array();
+    if($roundEntity->name != 'Round 4'){
+      $classArray = array($tableScorePassArray[$aid]);
+    }
+
+    $rows[] = array(
+      'data' => $row,
+      'class' => $classArray,
+      'aid' => $aid,
+    );
+  }
+
+  return '<h1>' . $roundEntity->name . '</h1><p><a href="" onclick="location.reload();">Refresh Page</a> | <a href="/qac">Judging Screen</a> | <a href="/qac/close-round" class="close-round">Close Round</a> | <a href="/user/logout">Log Out</a></p>' . theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array(
+      'rid' => $rid,
+    ),
+  ));
+}
+
+/**
+ * Callback for the ajax function that handles queen & court.
+ */
+function queen_court_review_page_ajax($aid, $uid, $rid, $scoreName){
+  // Yes, this isn't really the right way to do this--but it's a lot faster.
+  $result = db_query("SELECT sid, name FROM {queen_court_score} WHERE status = 1");
+  $scoreArray = array();
+  foreach($result as $row){
+    $scoreArray[$row->name] = $row->sid;
+  }
+
+  db_merge('queen_court_vote')
+    ->key(array(
+      'aid' => $aid,
+      'uid' => $uid,
+      'rid' => $rid,
+    ))
+    ->fields(array(
+      'sid' => $scoreArray[$scoreName],
+    ))
+    ->execute();
+
+  watchdog('queen_court', 'Edited vote from review screen.');
+  echo(1);
+  drupal_exit();
+}
+
+/**
+ * Callback for the tofr review page.
+ */
+function queen_court_tofr_review_page() {
+  $start = microtime(1);
+  require_once(drupal_get_path('module', 'queen_court') . '/coords.php');
+  $debugTime = microtime(true);
+  $rows = array();
+
+  // Preload the scores.
+  // Query!
+  $scores = array();
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_score')
+    ->propertyCondition('status', 1)
+    ->execute();
+
+  if(isset($queryResult['queen_court_score'])){
+    foreach($queryResult['queen_court_score'] as $key=>$score){
+      $entity = entity_load('queen_court_score', array($key));
+      $entity = reset($entity);
+      $sid = $entity->sid;
+      $name = $entity->name;
+      $scores[$sid] = $name;
+    }
+  }else{
+    return t('No scores are currently set as active.');
+  }
+  
+
+  // What round are we on?
+  // Query!
+  $roundEntity = queen_court_load_round(2);
+
+  if(!$roundEntity){
+    return t('No round is currently set as active.');
+  }
+  
+  drupal_set_title($roundEntity->name);
+  $rid = $roundEntity->rid;
+
+  // Load all the applicants.
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_applicant')
+    ->propertyCondition('status', 1)
+    ->propertyCondition('year', date('Y'))
+    ->propertyCondition('tofr_number', 0, '<>');
+    // ->range(0, 10)
+
+  // Round 1
+  $cutOff = 250;
+  // For the timing.
+  $timeIncrement = 60; // minutes
+  $timeStart = '09:00'; // XX:00
+  $peopleInTime = 40; // number of people per time increment
+
+  if($roundEntity->name == 'Round 2'){
+    $queryResult->propertyCondition('advance_to_round_2', 1);
+    $queryResult->propertyCondition('check_in_to_round_2', 0, '>');
+    $cutOff = 75;
+
+    // For the timing.
+    $timeIncrement = 45; // minutes
+    $timeStart = '14:45'; // XX:00
+    $peopleInTime = 20; // number of people per time increment
+  }elseif($roundEntity->name == 'Round 3'){
+    $queryResult->propertyCondition('advance_to_round_3', 1);
+    $queryResult->propertyCondition('check_in_to_round_3', 0, '>');
+    $cutOff = 35;
+
+    // For the timing.
+    $timeIncrement = 45; // minutes
+    $timeStart = '14:45'; // XX:00
+    $peopleInTime = 15; // number of people per time increment
+  }elseif($roundEntity->name == 'Round 4'){
+    $queryResult->propertyCondition('advance_to_round_4', 1);
+    $queryResult->propertyCondition('check_in_to_round_4', 0, '>');
+    $cutOff = 10;
+
+    // For the timing.
+    $timeIncrement = 45; // minutes
+    $timeStart = '14:45'; // XX:00
+    $peopleInTime = 15; // number of people per time increment
+  }else{
+    return t('There was an error.');
+  }
+
+  $queryResult = $queryResult->execute();
+
+  if(isset($queryResult['queen_court_applicant'])){
+    $applicantArray = array();
+    
+    foreach($queryResult['queen_court_applicant'] as $key => $value){
+      $applicantArray[$key] = $key;
+    }
+    $voteEntity = entity_load('queen_court_applicant', $applicantArray);
+  }else{
+    return t('There are no applicants to tabulate.');
+  }
+  
+  $applicants = array();
+  foreach($voteEntity as $aid => $entity){
+    $applicants[$aid] = $entity->tofr_number;
+    $applicantDetails[$aid] = $entity;
+  }
+
+  // Load the Votes
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_vote')
+    ->propertyCondition('rid', $roundEntity->rid)
+    ->propertyCondition('status', 1)
+    // ->range(0, 1000)
+    ->execute();
+
+  if(isset($queryResult['queen_court_vote'])){
+    $voteArray = array();
+    
+    foreach($queryResult['queen_court_vote'] as $key=>$value){
+      $voteArray[$key] = $key;
+    }
+    
+    //$voteEntity = entity_load('queen_court_vote', $voteArray);
+    $voteEntity = db_query("SELECT vid, uid, aid, sid FROM {queen_court_vote} WHERE vid IN (:uidList)", array(
+      ":uidList" => $voteArray,
+    ));
+    
+  }else{
+    return t('There are no votes to tabulate.');
+  }
+
+  // Preload all the users in the system. For now.
+  $users = entity_load('user');
+  foreach($users as $uid => $user){
+    $firstName = field_get_items('user', $user, 'field_first_name');
+    $lastName = field_get_items('user', $user, 'field_last_name');
+    $userArray[$uid] = substr($firstName[0]['safe_value'], 0, 1) . '. ' . substr($lastName[0]['safe_value'], 0, 1) . '.';
+  }
+
+  // Get all the judges that have voted.
+  // Compile all the votes by AID, then by UID.
+  $tableScoreTotalArray = array();
+  $tableCountTotalArray = array();
+
+  $judgeArray = array();
+  foreach($voteEntity as $vid => $vote){
+    $judgeArray[$vote->uid] = $userArray[$vote->uid];
+
+    $aid = $vote->aid;
+    $uid = $vote->uid;
+    $sid = $vote->sid;
+    $score = $scores[$sid];
+
+    if(!isset($tableScoreTotalArray[$aid])){
+      $tableScoreTotalArray[$aid] = 0;
+    }
+
+    if($score == 'DQ'){
+      $tableScoreTotalArray[$aid] -= 1000000;
+    }elseif($score == 'RC'){
+      // Do nothing.
+    }else{
+      if(!isset($tableScoreTotalArray[$aid])){
+        $tableScoreTotalArray[$aid] = $score;
+      }else{
+        $tableScoreTotalArray[$aid] += $score;
+      }
+
+      if(!isset($tableCountTotalArray[$aid])){
+        $tableCountTotalArray[$aid] = 1;
+      }else{
+        $tableCountTotalArray[$aid]++;
+      }
+    }
+
+    $tableArray[$aid][$uid] = $score;
+  }
+
+  $header[] = array(
+    'data' => t(''),
+  );
+
+  $header[] = array(
+    'data' => t('TofR #'),
+    'field' => 'tofr_number',
+    'sort' => 'asc',
+  );
+
+  $header[] = array(
+    'data' => t('Name'),
+    'field' => 'last_name',
+  );
+
+  $header[] = array(
+    'data' => t('School'),
+  );
+  $header[] = array(
+    'data' => t('Geo Eligible'),
+  );
+  $header[] = array(
+    'data' => t('DOB'),
+  );
+  $header[] = array(
+    'data' => t('TofR Family'),
+  );
+  $header[] = array(
+    'data' => t('Court Family'),
+  );
+  $header[] = array(
+    'data' => t('Report Time'),
+  );
+  $header[] = array(
+    'data' => t('Average'),
+    'field' => 'average',
+  );
+  $header[] = array(
+    'data' => t('Rank'),
+  );
+  $header[] = array(
+    'data' => t('Override'),
+  );
+
+  // Lay out the applicant array so that it'll be in order. Assume RC for everything.
+  $tableArray2 = array();
+  foreach($applicants as $aid => $tofr_number){
+    foreach($judgeArray as $uid => $judgeValue){
+      if(isset($tableArray[$aid][$uid])){
+        $tableArray2[$aid][$uid] = $tableArray[$aid][$uid];
+      }else{
+        $tableArray2[$aid][$uid] = '';
+      }
+    }
+  }
+  $tableArray = $tableArray2;
+  unset($tableArray2);
+  
+  $voteEntity = db_query("SELECT vid, uid, aid, sid FROM {queen_court_vote} WHERE vid IN (:uidList)", array(
+    ":uidList" => $voteArray,
+  ));
+
+  // Calculate the averages
+  $tableScoreAverageArray = array();
+  foreach($tableArray as $aid => $value){
+    $tableScoreAverageArray[$aid] = ($tableScoreTotalArray[$aid] / $tableCountTotalArray[$aid]);
+  }
+
+  // Calculate the rankings
+  arsort($tableScoreAverageArray);
+  $tableScoreRankArray = array();
+  $tableTimeArray = array();
+  $tableScorePassArray = array();
+
+  $i = 0;
+  $j = 0;
+  $lastRank = 0;
+  $thresholdMet = false;
+  $lastScore = '';
+
+  foreach($tableScoreAverageArray as $aid => $value){
+    $j++;
+    if(round($value, 3) != $lastScore ){
+      // $i++;
+      $i = $j;
+    }
+
+    $tableScoreRankArray[$aid] = $i;
+
+    if($j > $cutOff && ($lastRank != $tableScoreRankArray[$aid] || $thresholdMet)){
+      $tableScorePassArray[$aid] = 'doNotPass';
+      $thresholdMet = true;
+    }else{
+      $tableScorePassArray[$aid] = 'pass';
+    }
+
+    $lastScore = round($value, 3);
+    $lastRank = $i;
+  }
+
+  // Recheck for anyone force-passed.
+  foreach($tableScorePassArray as $aid => $status){
+    if($applicantDetails[$aid]->ss_status == 'D'){
+      $tableScorePassArray[$aid] = 'doNotPass';
+    }elseif($applicantDetails[$aid]->ss_status == 'A'){
+      $tableScorePassArray[$aid] = 'pass';
+    }
+  }
+
+
+  // RE-SORT based on the selection!!!
+  $tablesortOrder = tablesort_get_order($header);
+  $tablesortSort = tablesort_get_sort($header);
+
+  if($tablesortOrder['sql'] == ''){
+    $tablesortOrder['sql'] = 'average';
+    $tablesortSort = 'desc';
+  }
+
+  if($tablesortSort == 'asc'){
+    $tablesortSort = SORT_ASC;
+  }else{
+    $tablesortSort = SORT_DESC;
+  }
+
+  // Create the key arrays.
+  $data = array();
+  $dataSort = array();
+
+  // Possible Sort Columns
+  $i = 0;
+  foreach($applicants as $aid => $value){
+    $dataRow = array(
+      'aid' => $aid,
+      'tofr_number' => $applicantDetails[$aid]->tofr_number,
+      'last_name' => strtolower($applicantDetails[$aid]->last_name),
+      'first_name' => strtolower($applicantDetails[$aid]->first_name),
+      'average' => $tableScoreAverageArray[$aid],
+    );
+
+    $data[$i] = $dataRow;
+
+    foreach($dataRow as $key => $value2){
+      $dataSort[$key][$i] = $value2;
+    }
+
+    $i++;
+  }
+
+  array_multisort($dataSort[$tablesortOrder['sql']], $tablesortSort, $dataSort['tofr_number'], SORT_ASC, $data);
+  
+  foreach($data as $record){
+    if(isset($tableArray[$record['aid']])){
+      $tableArray2[$record['aid']] = $tableArray[$record['aid']];
+    }else{
+      $tableArray2[$record['aid']] = '';
+    }
+  }
+
+  $tableArray = $tableArray2;
+  unset($tableArray2);
+
+  $tableScorePassOnlyArray = array();
+  foreach($tableScorePassArray as $aid => $value){
+    if($value =='pass'){
+      $tableScorePassOnlyArray[$applicants[$aid]] = $aid;
+    }
+  }
+  ksort($tableScorePassOnlyArray);
+  // Get the AIDs of the users who "passed"
+  
+  $startTime = strtotime(date('Y-m-d') . ' ' . $timeStart . ':00');
+  $peopleLeft = $peopleInTime;
+
+  foreach($tableScorePassOnlyArray as $tofr_number => $aid){
+    $timeToReport = date('g:ia', $startTime);
+    $tableTimeArray[$aid] = $timeToReport;
+
+    $peopleLeft--;
+    if($peopleLeft == 0){
+      $peopleLeft = $peopleInTime;
+      $startTime += $timeIncrement * 60;
+      while(date('g', $startTime) == '12'){
+        $startTime += $timeIncrement * 60;
+      }
+    }
+  }
+
+  // Put the data together.
+  $rows = array();
+  $j = 0;
+  $lastScore = '';
+
+  $timing = array();
+  foreach($tableArray as $aid => $judges){
+    $classes = array($tableScorePassArray[$aid]);
+    $flagForReview = false;
+    $j++;
+    $row = array();
+    $row[] = array(
+      'data' => $j,
+      'class' => array('iterator'),
+    );
+    $row[] = array('data' => $applicants[$aid]);
+    $row[] = $applicantDetails[$aid]->last_name . ', ' . $applicantDetails[$aid]->first_name;
+    
+    if($applicantDetails[$aid]->school_name != "Other"){
+      $row[] = array('data' => $applicantDetails[$aid]->school_name);
+    }else{
+      $flagForReview = true;
+      $row[] = array('data' => $applicantDetails[$aid]->other_school);
+    }
+
+    // Do a last-minute geocode check.
+    if($applicantDetails[$aid]->latitude == 0){
+      $address = urlencode($applicantDetails[$aid]->address . ', ' . $applicantDetails[$aid]->city . ', ' . $applicantDetails[$aid]->state. ', ' . $applicantDetails[$aid]->zip);
+
+      $geoJson = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address=$address");
+      $decode = json_decode($geoJson);
+
+      db_query("UPDATE {queen_court_applicant} SET latitude = :latitude, longitude = :longitude WHERE aid = :aid", array(
+        ':latitude' => $decode->results[0]->geometry->location->lat,
+        ':longitude' => $decode->results[0]->geometry->location->lng,
+        ':aid' => $aid,
+      ));
+    }
+
+    $inCityBin = 1;
+    if($applicantDetails[$aid]->location_status == null){
+      if(queen_court_in_city(array($applicantDetails[$aid]->longitude, $applicantDetails[$aid]->latitude))){
+        $inCityBin = 1;
+      }else{
+        $flagForReview = true;
+        $inCityBin = 0;
+      }
+      db_query("UPDATE {queen_court_applicant} SET location_status = :status WHERE aid = :aid", array(
+        ':status' => $inCityBin,
+        ':aid' => $aid,
+      ));
+    }else{
+      if($applicantDetails[$aid]->location_status == 1){
+        $inCityBin = 1;
+      }else{
+        $inCityBin = 0;
+        $flagForReview = true;
+      }
+    }
+
+    if($inCityBin == 1){
+      $inCity = 'Yes';
+    }else{
+      $inCity = 'No';
+    }
+
+    $row[] = array(
+      'data' => $inCity,
+      'class' => 'geoEligible',
+    );
+
+    $dob17 = strtotime('2014-12-31 -17 years');
+    $dob21 = strtotime('2015-01-05 -21 years');
+
+    if($applicantDetails[$aid]->dob >= $dob17 && $applicantDetails[$aid]->dob <= $dob21){
+      $classes[] = 'flagged';
+    }
+
+    $row[] = array(
+      'data' => date('Y-m-d', $applicantDetails[$aid]->dob),
+    );
+
+    $any_family_tofr_members = 'No';
+    if($applicantDetails[$aid]->any_family_tofr_members){
+      $any_family_tofr_members = 'Yes';
+      $classes[] = 'tofr_family';
+    }
+
+    $any_past_family_royal_court_members = 'No';
+    if($applicantDetails[$aid]->any_past_family_royal_court_members){
+      $any_past_family_royal_court_members = 'Yes';
+      $classes[] = 'court_family';
+    }
+    $row[] = array(
+      'data' => $any_family_tofr_members,
+    );
+
+    $row[] = array(
+      'data' => $any_past_family_royal_court_members,
+    );
+
+    $tableTime = '';
+    if(isset($tableTimeArray[$aid])){
+      $tableTime = $tableTimeArray[$aid];
+    }
+    $row[] = array(
+      'data' => $tableTime,
+      'class' => array('time'),
+      'time' => $tableTime,
+    );
+
+    if($tableScoreTotalArray[$aid] < 0){
+      $row[] = array(
+        'data' => 'DQ',
+        'class' => array('average'),
+      );
+    }else{
+      $row[] = array(
+        'data' => number_format($tableScoreTotalArray[$aid] / $tableCountTotalArray[$aid], 3),
+        'class' => array('average'),
+      );
+    }
+    $row[] = array('data' => $tableScoreRankArray[$aid]);
+
+    if($tableScorePassArray[$aid] == 'doNotPass'){
+      $row[] = array('data' => '<div class="form-submit accept" action="A">ACCEPT</div>');
+    }else{
+      $row[] = array('data' => '<div class="form-submit" action="D">REJECT</div>');
+    }
+    
+    if($flagForReview){
+      $classes[] = 'flagged';
+    }
+
+    $rows[] = array(
+      'data' => $row,
+      'class' => $classes,
+      'aid' => $aid,
+    );
+  }
+
+  return '<h1>' . $roundEntity->name . '</h1><p><a href="" onclick="location.reload();">Refresh Page</a> | <a href="/qac/sport-systems" class="sports-systems">Export to Sports Systems</a></p>' . theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array(
+      'rid' => $rid,
+    ),
+  ));
+}
+
+/**
+ * Callback for the ajax function that handles queen & court.
+ */
+function queen_court_tofr_review_page_ajax($aid, $action){
+  if($action == 'geo-eligible'){
+    $result = db_query("SELECT * FROM {queen_court_applicant} WHERE aid = :aid", array(
+      ':aid' => $aid,
+    ))->fetchObject();
+    echo('<p><strong>' . $result->first_name . ' ' . $result->last_name . '</strong><br/>' . $result->address . '<br/>' . $result->city . ', ' . $result->state . ' ' . $result->zip . '</p><p>Latitude: ' . $result->latitude . '<br/>Longitude: ' . $result->longitude . '</p>');
+    if($result->family_tofr_members_list){
+      echo('<p>Past Family: ' . $result->family_tofr_members_list  . '</p>');
+    }
+    if($result->past_family_royal_court_members_list){
+      echo('<p>Past Court: ' . $result->past_family_royal_court_members_list . '</p>');
+    }
+    drupal_exit();
+  }
+
+  db_query("UPDATE {queen_court_applicant} SET ss_status = :action WHERE aid = :aid", array(
+    ':aid' => $aid,
+    ':action' => $action,
+  ));
+
+  watchdog('queen_court', 'Updated applicant status from TofR review screen.');
+  echo(1);
+  drupal_exit();
+}
+
+/**
+ * Callback for the entry
+ */
+function queen_court_entry_page($tofr_number = false, $ajax = false){
+  $output = '<div class="ajaxToReplace">';
+  // Load the round
+  // Query!
+  $round = queen_court_load_round(1);
+  
+  $rid = $round->rid;
+ 
+  if(!$rid){
+    return t('The round is currently closed.');
+  }
+
+  // Load the scores
+  // Query!
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_score')
+    ->propertyCondition('status', 1)
+    ->execute();
+
+  $scoreArray = array();
+  foreach($queryResult['queen_court_score'] as $score){
+    $entity = entity_load('queen_court_score', array($score->sid));
+    $entity = reset($entity);
+    $scoreArray[$score->sid] = $entity->name;
+  }
+
+  // Preload all the applicants.
+  // This will vary based on the round--we don't want to include anyone who's been eliminated.
+
+  // Round 1
+  if($round->name == 'Round 1'){
+    // Query!
+    $queryResult = db_query("SELECT * FROM {queen_court_applicant} WHERE year = :year AND status = :status AND tofr_number <> 0 ORDER BY tofr_number", array(
+      ':year' => date('Y'),
+      ':status' => 1,
+    ));
+  }elseif(substr($round->name, 0, 5) == 'Round'){
+    $roundField = 'advance_to_round_' . substr($round->name, -1);
+    $roundTimeField = 'advance_to_round_' . substr($round->name, -1) . '_time';
+    $roundCheckInField = 'check_in_to_round_' . substr($round->name, -1);
+
+    // Query!
+    $queryResult = db_query("SELECT * FROM {queen_court_applicant} WHERE year = :year AND status = :status AND tofr_number <> 0 AND " . $roundField . " = 1 AND " . $roundCheckInField . " <> 0 ORDER BY HOUR(FROM_UNIXTIME(" . $roundTimeField . ")), tofr_number", array(
+      ':year' => date('Y'),
+      ':status' => 1,
+    ));
+  }else{
+    return t('There was an error.');
+  }
+
+  $applicantArray = array();
+  foreach($queryResult as $applicant){
+    $applicantArray[] = $applicant->tofr_number;
+  }
+  if(!$tofr_number || !in_array($tofr_number, $applicantArray)){
+    $tofr_number = reset($applicantArray);
+  }
+
+  // Load the applicant
+  // Query!
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_applicant')
+    ->propertyCondition('year', date('Y'))
+    ->propertyCondition('status', 1)
+    ->propertyCondition('tofr_number', $tofr_number)
+    ->execute();
+
+  $aid = 0;
+  if(isset($queryResult['queen_court_applicant'])){
+    $aid = $queryResult['queen_court_applicant'];
+    $aid = reset($aid);
+    $aid = $aid->aid;
+  }
+
+  // Get the previous and next AIDs.
+  $applicantKey = array_search($tofr_number, $applicantArray);
+  $previousTofrNumber = $applicantArray[$applicantKey - 1];
+  $nextTofrNumber = $applicantArray[$applicantKey + 1];
+
+  // Load the vote
+  // Query!
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_vote')
+    ->propertyCondition('rid', $rid)
+    ->propertyCondition('status', 1)
+    ->propertyCondition('aid', $aid)
+    ->propertyCondition('uid', $GLOBALS['user']->uid)
+    ->execute();
+
+  $vid = 0;
+  if(isset($queryResult['queen_court_vote'])){
+    $vid = $queryResult['queen_court_vote'];
+    $vid = reset($vid);
+    $vid = $vid->vid;
+    $vote = entity_load('queen_court_vote', array($vid));
+    $vote = reset($vote);
+  }else{
+    $vote = new stdClass;
+    $vote->sid = '';
+  }
+
+  // Load up the account so we can show who's logged in.
+  $account = user_load($GLOBALS['user']->uid);
+
+  $field = field_get_items('user', $account, 'field_first_name');
+  $first_name_value = field_view_value('user', $account, 'field_first_name', $field[0]);
+
+  $field = field_get_items('user', $account, 'field_last_name');
+  $last_name_value = field_view_value('user', $account, 'field_last_name', $field[0]);
+  $output .= '<div class="voteContainer" aid="' . $aid . '" rid="' . $rid . '" uid="' . $GLOBALS['user']->uid . '">';
+  $output .= t('<div class="loggedInAs">You are logged in as @first_name @last_name</div>', array(
+    '@first_name' => render($first_name_value),
+    '@last_name' => render($last_name_value),
+  ));
+
+  $output .= t('<div class="applicantContainer">Applicant @tofr_number</div>', array(
+    '@tofr_number' => substr('0000' . $tofr_number, -4),
+  ));
+
+  $output .= '<div class="scoreContainer" vid="' . $vid . '">';
+
+  foreach($scoreArray as $sid => $name){
+    $class = array('score_' . $name, 'scoreButton');
+    if($sid == $vote->sid){
+      $class[] = 'selected';
+    }
+    $output .= t('<div class="@class" sid="@sid">@name</div>', array(
+      '@class' => implode(' ', $class),
+      '@sid' => $sid,
+      '@name' => $name,
+    ));
+  }
+
+  $output .= '</div>';
+
+  $output .= '</div>';
+
+  $output .= '<div class="voteNavigationContainer">';
+  if($previousTofrNumber){
+    $output .= '<div class="previous" tofr_number="' . $previousTofrNumber . '">Previous</div>';
+  }
+  if($nextTofrNumber){
+    $output .= '<div class="next" tofr_number="' . $nextTofrNumber . '">Next</div>';
+  }
+  $output .= '</div>';
+  $output .= '</div>';
+  if($ajax){
+    echo($output);
+    drupal_exit();
+  }else{
+    return $output;
+  }
+}
+
+/**
+ * Callback for the ajax function that handles queen & court.
+ */
+function queen_court_entry_page_ajax($aid, $uid, $rid, $sid){
+  db_merge('queen_court_vote')
+    ->key(array(
+      'aid' => $aid,
+      'uid' => $GLOBALS['user']->uid,
+      'rid' => $rid,
+    ))
+    ->fields(array(
+      'sid' => $sid,
+    ))
+    ->execute();
+
+  watchdog('queen_court', 'Edited vote from add screen.');
+  echo(1);
+  drupal_exit();
+}
+
+/**
+ * Callback for the queen & court import from Sports Systems XLS file.
+ */
+function queen_court_import_form(){
+  $form = array();
+
+  $form['file'] = array(
+    '#type' => 'file',
+    '#title' => t('Excel File'),
+    '#description' => t('This file is very very customized; it comes straight from Sports Systems. You must not mess with the formatting or anything.'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Import Now'),
+  );
+
+  return $form;
+}
+
+/**
+ * Callback for the queen & court import from Sports Systems XLS file.
+ */
+function queen_court_import_form_submit($form, &$form_submit){
+  /** Include PHPExcel_IOFactory */
+  require_once dirname(__FILE__) . '/PHPExcel/IOFactory.php';
+
+  $file = file_save_upload('file', array(), FILE_EXISTS_RENAME);
+  unset($form_state['values']['file']);
+  $file->status = FILE_STATUS_PERMANENT;
+  file_save($file);
+
+  $inputFile = $file->uri;
+  $inputFileType = PHPExcel_IOFactory::identify($inputFile);
+
+  $data = array();
+
+  if($inputFileType == 'HTML'){
+    $htmltable = file_get_contents($inputFile);
+    file_delete($file, true);
+    $htmltable = strip_tags($htmltable, "<table><tr><th><thead><tbody><tfoot><td><br><br />");
+    $htmltable = str_replace("<br />", "\n", $htmltable);
+    $htmltable = str_replace("<br/>", "\n", $htmltable);
+    $htmltable = str_replace("<br>", "\n", $htmltable);
+    $htmltable = str_replace("&nbsp;", " ", $htmltable);
+    $htmltable = str_replace("\n\n", "\n", $htmltable);
+
+    $htmltable = preg_replace("/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i", '<$1$2>', $htmltable);
+
+    $dom = new domDocument;
+    $dom->loadHTML($htmltable);
+    $tables = $dom->getElementsByTagName('table');
+    $rows = $tables->item(0)->getElementsByTagName('tr');
+
+    // Loop through each row of the worksheet in turn
+    $i = -1;
+    foreach ($rows as $row){
+      $i++;
+      $cellData = array();
+      //  Read a row of data into an array
+
+      $cellInfo = '';
+      foreach($row->getElementsByTagName('th') as $cellInformation){
+        $nodeValue = trim($cellInformation->nodeValue);
+        $cellData[] = $nodeValue;
+        $cellInfo .= $nodeValue;
+      }
+
+      foreach($row->getElementsByTagName('td') as $cellInformation){
+        $nodeValue = trim($cellInformation->nodeValue);
+        $cellData[] = $nodeValue;
+        $cellInfo .= $nodeValue;
+      }
+
+      if(!$cellInfo && $i > 10){
+        break;
+      }else{
+        $data[] = $cellData;
+      }
+    }
+    
+    // Trim away the extraneous rows.
+    foreach($data as $key=>$value){
+      if(count($value) < 30){
+        unset($data[$key]);
+      }
+    }
+    $headerRow = $data[4];
+    $headerRowFlip = array_flip($headerRow);
+    unset($data[4]);
+  }
+  // THIS IS IN CASE THEY START TO EXPORT A REAL EXCEL FILE.
+  // else{
+  //   $objReader = PHPExcel_IOFactory::createReader($inputFileType);
+  //   $objPHPExcel = $objReader->load($inputFile);
+  //   $sheet = $objPHPExcel->setActiveSheetIndex(0);
+
+  //   // Loop through each row of the worksheet in turn
+  //   foreach ($sheet->getRowIterator() as $row){
+  //     $cellData = array();
+  //     //  Read a row of data into an array
+  //     $cell = $row->getCellIterator();
+  //     $cell->setIterateOnlyExistingCells(false);
+
+  //     foreach($cell as $cellInformation){
+  //       $cellData[] = $cellInformation->getValue();
+  //     }
+  //     $data[] = $cellData;
+  //   }
+  // }
+
+  $mapping = array(
+    // 'name' => '',
+    'first_name' => 'First Name',
+    'last_name' => 'Last Name',
+    // 'status' => '',
+    // 'year' => '',
+    // 'tofr_number' => 'No.',
+    'sports_systems_number' => 'PersonID',
+    'school_name' => 'Name of School',
+    'other_school' => 'Other School',
+    'year_in_school' => 'Year in School',
+    'middle_name' => '[Contact] Middle Name',
+    'address' => 'Address',
+    'city' => 'City',
+    'state' => 'State',
+    'zip' => 'Zip',
+    'contact_address' => '[Contact] Street Address',
+    'contact_city' => '[Contact] City',
+    'contact_state' => '[Contact] State',
+    'contact_zip' => '[Contact] Zip Code',
+    'phone' => '[Contact] Billing Phone',
+    'cell_phone' => '[Contact] Billing Cell Phone',
+    'email' => 'E-Mail Address',
+    'any_past_family_royal_court_members' => '[Contact] Do you have family who are past Royal Court Members?',
+    'any_family_tofr_members' => '[Contact] Do you have family who are Members of the Tournament of Roses?',
+    'past_family_royal_court_members_list' => '[Contact] Family Who Are Past Royal Court Members',
+    'family_tofr_members_list' => '[Contact] Family Who Are Members of the Tournament of Roses',
+    'ss_status' => 'Status',
+    'advance_to_round_2' => 'Advance to Rd. 2',
+    'advance_to_round_3' => 'Advance to Rd. 3',
+    'advance_to_round_4' => 'Advance to Rd. 4',
+    'advance_to_round_2_time' => 'QF Sessions',
+    'advance_to_round_3_time' => 'SF Sessions',
+    'advance_to_round_4_time' => '',
+    'gpa' => 'GPA',
+    'ss_application_id' => 'ApplicationID',
+    'ss_person_id' => 'PersonID',
+    'ss_uuid' => '[System] FrontEnd UUID',
+    'created' => 'Application Date',
+    'dob' => '[Contact] Date of Birth',
+  );
+
+  $data = array_slice($data, 0, 10000);
+  // Do the import.
+  $start = microtime(1);
+  $applicants = array(
+    'new' => 0,
+    'update' => 0,
+    'total' => 0,
+  );
+
+  // Get a list of all the current applicants.
+  $applicantArray = array();
+  $result = db_query("SELECT sports_systems_number, aid, latitude, longitude FROM {queen_court_applicant}");
+
+  foreach($result as $record){
+    $applicantArray[$record->sports_systems_number] = array(
+      'aid' => $record->aid,
+      'latitude' => $record->latitude,
+      'longitude' => $record->longitude,
+    );
+  }
+
+  foreach($data as $applicant){
+    $applicants['total']++;
+    $crudArray = array('entity_type' => 'queen_court_applicant', 'entity_id_name' => 'aid', 'status' => 1, 'year' => date('Y'));
+    foreach($mapping as $entity_key => $ss_key){
+      // Get the key name.
+      $key = $headerRowFlip[$ss_key];
+      if($entity_key == 'created' || $entity_key == 'dob'){
+        $crudArray[$entity_key] = strtotime($applicant[$key]);
+      }elseif($entity_key == 'any_past_family_royal_court_members' || $entity_key == 'any_family_tofr_members'){
+        if($applicant[$key] == 'Yes'){
+          $crudArray[$entity_key] = 1;
+        }else{
+          $crudArray[$entity_key] = 0;
+        }
+      }elseif($entity_key == 'year_in_school'){
+        $yearInSchool = array_search($applicant[$key], queen_and_court_year_in_school());
+        $crudArray[$entity_key] = $yearInSchool;
+      }else{
+        $crudArray[$entity_key] = $applicant[$key];
+      }
+    }
+
+    // Check if this is an update.
+    if(isset($applicantArray[$applicant[$headerRowFlip['PersonID']]])){
+      $applicantInfo = $applicantArray[$applicant[$headerRowFlip['PersonID']]];
+      $crudArray['aid'] = $applicantInfo['aid'];
+
+      $applicants['update']++;
+    }else{
+      $applicants['new']++;
+    }
+
+    // Get the latitude and longitude from our friends at Google if the record doesn't have it already.
+    if((isset($applicantArray[$applicant[$headerRowFlip['PersonID']]]) && (!$applicantInfo['latitude'] || !$applicantInfo['longitude'])) || !isset($applicantArray[$applicant[$headerRowFlip['PersonID']]])){
+
+      $address = urlencode($crudArray['address'] . ', ' . $crudArray['city'] . ', ' . $crudArray['state']. ', ' . $crudArray['zip']);
+
+      $geoJson = file_get_contents("https://maps.googleapis.com/maps/api/geocode/json?address=$address");
+      //error_log('Geocoded');
+      // error_log($geoJson);
+      $decode = json_decode($geoJson);
+
+      $crudArray['latitude'] = $decode->results[0]->geometry->location->lat;
+      $crudArray['longitude'] = $decode->results[0]->geometry->location->lng;
+    }
+
+    
+    
+    $entity = queen_court_crud($crudArray);
+  }
+  drupal_set_message('Processed ' . $applicants['total'] . ' applicants total; ' . $applicants['new'] . ' new and ' . $applicants['update'] . ' updated in ' . round(microtime(1) - $start, 3) . ' seconds.');
+}
+
+/**
+ * Callback for the checkin page.
+ */
+function queen_court_check_in(){
+  $roundEntity = queen_court_load_round(1);
+  if(!$roundEntity){
+    return t('Check In is Closed.');
+  }
+  $output = '';
+  $output .= '<h1>Queen and Court Checkin</h1>';
+  
+  if($roundEntity->name == 'Round 1'){
+    $form = array(
+      'search' => array(
+        '#type' => 'textfield',
+        '#title' => t('Search'),
+        '#description' => t('Type a first, last, or both names.'),
+        '#attributes' => array(
+          'id' => 'quickSearch',
+        ),
+      ),
+    );
+    $output .= drupal_render($form);
+
+    $result = db_query("SELECT aid, first_name, last_name, dob, address, city, school_name, other_school, email FROM {queen_court_applicant} WHERE tofr_number = 0 ORDER BY last_name, first_name");
+    $header = array(t('Last'), t('First'), t('DOB'), t('Address'), t('City'), t('School'), t('Email'));
+
+    $i = 0;
+    foreach($result as $record){
+      $i++;
+      $school = $record->school_name;
+      if($school == 'Other'){
+        $school = $record->other_school;
+      }
+      $rows[] = array(
+        'data' => array(
+          $record->last_name,
+          $record->first_name,
+          date('n/j/Y', $record->dob),
+          $record->address,
+          ucwords($record->city),
+          $school,
+          strtolower($record->email),
+        ),
+        'aid' => $record->aid,
+        'class' => array('checkInRow'),
+      );
+    }
+  }else{
+    $form = array(
+      'search' => array(
+        '#type' => 'textfield',
+        '#title' => t('Search'),
+        '#description' => t('Type a badge number'),
+        '#attributes' => array(
+          'id' => 'quickSearch',
+        ),
+      ),
+    );
+    $output .= drupal_render($form);
+
+    $roundField = 'advance_to_round_' . substr($roundEntity->name, -1);
+    $roundTimeField = 'advance_to_round_' . substr($roundEntity->name, -1) . '_time';
+    $roundCheckInField = 'check_in_to_round_' . substr($roundEntity->name, -1);
+
+    $result = db_query("SELECT aid, first_name, last_name, tofr_number, " . $roundTimeField . " as time FROM {queen_court_applicant} WHERE " . $roundField . " = 1 AND " . $roundCheckInField . " = 0 AND ss_status = 'A' ORDER BY HOUR(FROM_UNIXTIME(" . $roundTimeField . ")), MINUTE(FROM_UNIXTIME(" . $roundTimeField . ")), tofr_number");
+    $header = array(t('Badge'), t('Last'), t('First'), t('Time'));
+
+    $i = 0;
+    foreach($result as $record){
+      $i++;
+      $school = $record->school_name;
+      if($school == 'Other'){
+        $school = $record->other_school;
+      }
+      $rows[] = array(
+        'data' => array(
+          $record->tofr_number,
+          $record->last_name,
+          $record->first_name,
+          date('g:ia', $record->time),
+        ),
+        'aid' => $record->aid,
+        'class' => array('checkInRow', 'laterRound'),
+        'time_slot' => date('G', $record->time),
+      );
+    }
+  }
+  
+
+
+  $output .= '<div>Total Left: ' . $i . ' applicants</div><div id="resultTableWrapper">' . theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+  )) . '</div>';
+
+  return $output;
+}
+
+/**
+ * Callback for the checkin page autocomplete.
+ */
+function queen_court_check_in_autocomplete($search){
+  $output = '';
+
+  if($search == '[NULL]'){
+    $search = '';
+  }
+
+  $searchArray = explode(' ', $search);
+
+  $roundEntity = queen_court_load_round(1);
+
+  if($roundEntity->name == 'Round 1'){
+    if(count($searchArray) > 1){
+      $result = db_query("SELECT aid, first_name, last_name, dob, address, city, school_name, other_school, email FROM {queen_court_applicant} WHERE (first_name LIKE :search1 AND last_name LIKE :search2) AND tofr_number = 0 ORDER BY last_name, first_name", array(
+        ':search1' => '' . db_like($searchArray[0]) . '%',
+        ':search2' => '' . db_like($searchArray[1]) . '%',
+      ));
+    }else{
+      $result = db_query("SELECT aid, first_name, last_name, dob, address, city, school_name, other_school, email FROM {queen_court_applicant} WHERE (first_name LIKE :search OR last_name LIKE :search) AND tofr_number = 0 ORDER BY last_name, first_name", array(
+        ':search' => '' . db_like($search) . '%',
+      ));
+    }
+
+    $header = array(t('Last'), t('First'), t('DOB'), t('Address'), t('City'), t('School'), t('Email'));
+
+    foreach($result as $record){
+      $school = $record->school_name;
+      if($school == 'Other'){
+        $school = $record->other_school;
+      }
+      $rows[] = array(
+        'data' => array(
+          $record->last_name,
+          $record->first_name,
+          date('n/j/Y', $record->dob),
+          $record->address,
+          ucwords($record->city),
+          $school,
+          strtolower($record->email),
+        ),
+        'aid' => $record->aid,
+        'class' => array('checkInRow'),
+      );
+    }
+  }else{
+    $roundField = 'advance_to_round_' . substr($roundEntity->name, -1);
+    $roundTimeField = 'advance_to_round_' . substr($roundEntity->name, -1) . '_time';
+    $roundCheckInField = 'check_in_to_round_' . substr($roundEntity->name, -1);
+
+    $result = db_query("SELECT tofr_number, aid, first_name, last_name, " . $roundTimeField . " as time FROM {queen_court_applicant} WHERE tofr_number LIKE :search AND " . $roundField . " = 1 AND " . $roundCheckInField . " = 0 AND tofr_number <> 0 ORDER BY tofr_number", array(
+      ':search' => '' . db_like($searchArray[0]) . '%',
+    ));
+
+    $header = array(t('Badge'), t('Last'), t('First'), t('Time'));
+
+    foreach($result as $record){
+      $rows[] = array(
+        'data' => array(
+          $record->tofr_number,
+          $record->last_name,
+          $record->first_name,
+          date('g:ia', $record->time),
+        ),
+        'aid' => $record->aid,
+        'class' => array('checkInRow', 'laterRound'),
+        'time_slot' => date('G', $record->time),
+      );
+    }
+  }
+
+  $output .= theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+  ));
+
+  echo $output;
+  drupal_exit();
+}
+
+/**
+ * Callback to get the next number.
+ */
+function queen_court_check_in_number($aid){
+  $roundEntity = queen_court_load_round(1);
+
+  if($roundEntity->name == 'Round 1'){
+    $result = db_query_range("SELECT tofr_number FROM {queen_court_applicant} WHERE tofr_number != 0 ORDER BY tofr_number DESC", 0, 1);
+    $number = $result->fetchField();
+    if(!$number){
+      $number = 0;
+    }
+    $avoid = variable_get('queen_court_numbers_to_skip', array());
+    $gotNumber = false;
+    
+    while($gotNumber == false){
+      $number++;
+      if(!in_array($number, $avoid)){
+        $gotNumber = true;
+      }
+    }
+
+    queen_court_crud(array(
+      'entity_type' => 'queen_court_applicant',
+      'entity_id_name' => 'aid',
+      'aid' => $aid,
+      'tofr_number' => $number,
+    ));
+
+    echo($number);
+    drupal_exit();
+  }else{
+    $roundField = 'advance_to_round_' . substr($roundEntity->name, -1);
+    $roundTimeField = 'advance_to_round_' . substr($roundEntity->name, -1) . '_time';
+    $roundCheckInField = 'check_in_to_round_' . substr($roundEntity->name, -1);
+
+    queen_court_crud(array(
+      'entity_type' => 'queen_court_applicant',
+      'entity_id_name' => 'aid',
+      'aid' => $aid,
+      $roundCheckInField => strtotime('now'),
+    ));
+
+    drupal_exit();
+  }
+}
+
+/**
+ * Callback for year in school
+ */
+function queen_and_court_year_in_school(){
+  return array(
+    9 => 'High School Freshman',
+    10 => 'High School Sophomore',
+    11 => 'High School Junior',
+    12 => 'High School Senior',
+    13 => 'College Freshman',
+    14 => 'College Sophomore',
+    15 => 'College Junior',
+    16 => 'College Senior',
+  );
+}
+
+/**
+ * Callback to close a round
+ */
+function queen_court_close_round(){
+  // Close all rounds.
+  db_query("UPDATE {queen_court_round} SET stage = 2 WHERE status = 1");
+
+  // Update the applicants.
+  $passData = json_decode($_POST['passData']);
+  db_query("UPDATE {queen_court_applicant} SET ss_status = 'D' WHERE year = :year AND tofr_number <> 0", array(
+    ':year' => date('Y'),
+  ));
+  db_query("UPDATE {queen_court_applicant} SET ss_status = 'A' WHERE aid IN (:aids)", array(
+    ':aids' => $passData,
+  ));
+  echo(1);
+  drupal_exit();
+}
+
+
+
+/**
+ * Callback to send the data to Sports Systems.
+ */
+function queen_court_send_to_sports_systems(){
+  // Get the data from the submission.
+  $passData = json_decode($_POST['passData']);
+  $timeData = json_decode($_POST['timeData']);
+
+  // Get the current round.
+  $roundEntity = queen_court_load_round(2);
+  $roundName = $roundEntity->name;
+
+  if(!$roundName){
+    echo(0);
+    drupal_exit();
+  }
+
+  $fieldMapping = array(
+    'Round 1' => array(
+      'boolean' => 'advance_to_round_2',
+      'drupalTime' => 'advance_to_round_2_time',
+      'sportsSystemsTime' => 'QFSessions',
+    ),
+    'Round 2' => array(
+      'boolean' => 'advance_to_round_3',
+      'drupalTime' => 'advance_to_round_3_time',
+      'sportsSystemsTime' => 'SFSessions',
+    ),
+    'Round 3' => array(
+      'boolean' => 'advance_to_round_4',
+    ),
+  );
+
+  // Close this round completely.
+  db_query("UPDATE {queen_court_round} SET status = 0 WHERE stage = 2");
+
+  // If the round has a time set:
+  if(isset($fieldMapping[$roundName]['drupalTime'])){
+    // Decline everybody.
+    db_query("UPDATE {queen_court_applicant} SET ss_status = 'D', " . $fieldMapping[$roundName]['boolean'] . " = 0, " . $fieldMapping[$roundName]['drupalTime'] . " = 0 WHERE year = :year AND tofr_number <> 0", array(
+      ':year' => date('Y'),
+    ));
+
+    // Update the appropriate round data for everyone.
+    foreach($passData as $key => $aid){
+      db_query("UPDATE {queen_court_applicant} SET ss_status = 'A', " . $fieldMapping[$roundName]['boolean'] . " = 1, " . $fieldMapping[$roundName]['drupalTime'] . " = :time  WHERE aid = :aid", array(
+        ':aid' => $aid,
+        ':time' => strtotime($timeData[$key]),
+      ));
+    }
+  }else{
+    // Decline everybody.
+    db_query("UPDATE {queen_court_applicant} SET ss_status = 'D', " . $fieldMapping[$roundName]['boolean'] . " = 0 WHERE year = :year AND tofr_number <> 0", array(
+      ':year' => date('Y'),
+    ));
+
+    // Update the appropriate round data for everyone.
+    foreach($passData as $key => $aid){
+      db_query("UPDATE {queen_court_applicant} SET ss_status = 'A', " . $fieldMapping[$roundName]['boolean'] . " = 1 WHERE aid = :aid", array(
+        ':aid' => $aid,
+      ));
+    }
+  }
+
+  // Generate the SS export.
+  // What a goddamned pain.
+  // Get all the information they want.
+  $file = drupal_get_path('module', 'queen_court') . '/RoseBowlData.xlsx';
+  require_once(drupal_get_path('module', 'queen_court') . '/PHPExcel/IOFactory.php');
+  require_once(drupal_get_path('module', 'queen_court') . '/PHPExcel.php');
+
+  $excelType = PHPExcel_IOFactory::identify($file);
+
+  $excel = PHPExcel_IOFactory::createReader($excelType);
+  $excel = $excel->load($file);
+  $excel->setActiveSheetIndex(0);
+
+  // Retrieve the data.
+  $result = db_query("SELECT ss_application_id as applicationID, ss_person_id as personID, first_name as NameFirst, last_name as NameLast, email as Email, tofr_number as NoAssign, advance_to_round_2 as Rd2Advance, advance_to_round_2_time as QFSessions, advance_to_round_3 as Rd3Advance, advance_to_round_3_time as SFSessions, advance_to_round_4 as Rd4Advance, gpa as GPA, ss_status as approvalstatus FROM {queen_court_applicant} WHERE year = :year AND tofr_number <> 0", array(
+    ':year' => date('Y'),
+  ));
+
+  $currentRow = 3;
+
+  foreach($result as $record){
+    $qfSession = '';
+    if($record->QFSessions){
+      $qfSession = str_replace('m', '.m.', date('g a', $record->QFSessions));
+    }
+
+    $sfSession = '';
+    if($record->SFSessions){
+      $sfSession = str_replace('m', '.m.', date('g:i a', $record->SFSessions));
+    }
+
+    $excel->getActiveSheet()
+      ->setCellValue('A' . $currentRow, $record->applicationID)
+      ->setCellValue('B' . $currentRow, $record->personID)
+      ->setCellValue('C' . $currentRow, $record->NameFirst)
+      ->setCellValue('D' . $currentRow, $record->NameLast)
+      ->setCellValue('E' . $currentRow, $record->Email)
+      ->setCellValue('F' . $currentRow, queen_court_blank2zero($record->NoAssign))
+      ->setCellValue('G' . $currentRow, queen_court_bin2yn($record->Rd2Advance))
+      ->setCellValue('H' . $currentRow, queen_court_zero2blank($qfSession))
+      ->setCellValue('I' . $currentRow, queen_court_zero2blank($sfSession))
+      ->setCellValue('J' . $currentRow, queen_court_bin2yn($record->Rd3Advance))
+      ->setCellValue('K' . $currentRow, queen_court_bin2yn($record->Rd4Advance))
+      ->setCellValue('L' . $currentRow, $record->GPA)
+      ->setCellValue('M' . $currentRow, $record->approvalstatus);
+    $currentRow++;
+  }
+
+  try{
+    $objWriter = PHPExcel_IOFactory::createWriter($excel, $excelType);
+    $objWriter->save(drupal_realpath('public://RoseBowlData.xlsx'));
+  }catch(Exception $e){
+    error_log($e);
+  }
+
+  echo(file_create_url('public://RoseBowlData.xlsx'));
+  
+  drupal_exit();
+}
+
+function queen_court_bin2yn($in){
+  if(strtolower($in) == '1'){
+    return 'Yes';
+  }elseif(strtolower($in) == '0'){
+    return 'No';
+  }else{
+    return '';
+  }
+}
+
+function queen_court_zero2blank($in){
+  if($in == 0){
+    return '';
+  }
+  return $in;
+}
+
+function queen_court_blank2zero($in){
+  if($in == ''){
+    return 0;
+  }
+  return $in;
+}
+
+/**
+ *
+ */
+function queen_court_load_round($stage = 1){
+  $query = new EntityFieldQuery();
+  $queryResult = $query->entityCondition('entity_type', 'queen_court_round')
+    ->propertyCondition('year', date('Y'))
+    ->propertyCondition('status', 1)
+    ->propertyCondition('stage', $stage)
+    ->execute();
+
+  if(isset($queryResult['queen_court_round'])){
+    $roundEntity = $queryResult['queen_court_round'];
+    $roundEntity = reset($roundEntity);
+    $roundEntity = entity_load('queen_court_round', array($roundEntity->rid));
+    $roundEntity = reset($roundEntity);
+  }else{
+    $roundEntity = false;
+  }
+
+  return $roundEntity;
+}
+
+
+
+
+
+

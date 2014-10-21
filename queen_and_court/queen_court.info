@@ -1,0 +1,11 @@
+name = Queen and Court Judging
+description = Allows privileged users to rank the current round of Queen and Court Applicants.
+core = 7.x
+package = Content
+
+files[] = queen_court.controller.inc
+
+stylesheets[all][] = queen_court.css
+scripts[] = queen_court.js
+
+dependencies[] = entity

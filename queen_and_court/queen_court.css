@@ -1,0 +1,668 @@
+/**
+ * Review Page
+ */
+.page-qac{
+	-webkit-user-select: none; /* webkit (safari, chrome) browsers */
+  -moz-user-select: none; /* mozilla browsers */
+  -khtml-user-select: none; /* webkit (konqueror) browsers */
+  -ms-user-select: none; /* IE10+ */
+}
+
+.page-qac table{
+	width: 100%;
+}
+
+.page-qac-review .region-footer{
+	display: none;
+}
+
+.page-qac-review .doNotPass,
+.page-qac-tofr-review .doNotPass{
+	background-color: #ffeeee;
+}
+
+.page-qac-review .pass,
+.page-qac-tofr-review .pass{
+	background-color: #eeffee;
+}
+
+.page-qac-review .doNotPass.even,
+.page-qac-tofr-review .doNotPass.even{
+	background-color: #ffeeee;
+}
+
+.page-qac-review .pass.even,
+.page-qac-tofr-review .pass.even{
+	background-color: #eeffee;
+}
+
+.page-qac-review .pass.flagged,
+.page-qac-tofr-review .pass.flagged{
+	background-color: #ffffcc;
+}
+
+.page-qac-review .pass.even.flagged,
+.page-qac-tofr-review .pass.even.flagged{
+	background-color: #f8f8cc;
+}
+
+.page-qac-tofr-review .doNotPass.tofr_family,
+.page-qac-tofr-review .doNotPass.even.tofr_family,
+.page-qac-tofr-review .doNotPass.court_family,
+.page-qac-tofr-review .doNotPass.even.court_family{
+	background-color: #eeeeff;
+}
+
+.page-qac-tofr-review .pass.tofr_family,
+.page-qac-tofr-review .pass.even.tofr_family,
+.page-qac-tofr-review .pass.court_family,
+.page-qac-tofr-review .pass.even.court_family{
+	background-color: #eeeeff;
+}
+
+.page-qac-review td,
+.page-qac-tofr-review td,
+.page-qac-review th,
+.page-qac-tofr-review th{
+	text-align: center;
+}
+
+.page-qac-review th,
+.page-qac-tofr-review th{
+	padding-right: 0;
+}
+
+.page-qac-review td.editable:hover,
+.page-qac-tofr-review td.editable:hover,
+.page-qac-tofr-review td.geoEligible:hover{
+	background-color: #fcfcfc;
+	cursor: pointer;
+}
+
+.page-qac-review td.editable .scoreOption,
+.page-qac-tofr-review td.editable .scoreOption{
+	font-size: 0.8em;
+	padding: 0.1em 0.4em;
+	background-color: #ffffff;
+	margin: 0.0em;
+	display: inline-block;
+}
+
+.page-qac-review td.editable .scoreOption:hover,
+.page-qac-tofr-review td.editable .scoreOption:hover{
+	background-color: #ffdddd;
+}
+
+.page-qac-review td.editable.processing,
+.page-qac-tofr-review td.editable.processing,
+.page-qac-review td.editable.processing:hover,
+.page-qac-tofr-review td.editable.processing:hover{
+	background-color: #ffffdd;
+	color: #aaaaaa;
+}
+
+.page-qac-review tr.even:hover,
+.page-qac-review tr.odd:hover{
+	background-color: #ffff00;
+}
+
+.page-qac-review tr.pass.even:hover,
+.page-qac-review tr.pass.odd:hover{
+	background-color: #00ff00;
+}
+
+.page-qac-tofr-review .form-submit.accept{
+	background-color: #008800;
+	border-color: #003300;
+}
+
+/**
+ * Entry Page
+ */
+.page-qac .score_RC{
+	background-color: #333333;
+}
+.page-qac .score_DQ{
+	background-color: #4d2b38;
+}
+
+.page-qac .score_0{
+	background-color: #420e23;
+}
+.page-qac .score_1{
+	background-color: #662a42;
+}
+
+.page-qac .score_2{
+	background-color: #b36484;
+}
+
+.page-qac .score_3{
+	background-color: #b37990;
+}
+
+.page-qac .voteContainer{
+	text-align: center;
+}
+
+.page-qac .loggedInAs{
+	margin: 0.5em;
+}
+
+.page-qac .applicantContainer{
+	font-size: 3em;
+	color: #333333;
+	margin: 1em;
+	font-weight: bold;
+	border: 1px solid #aaaaaa;
+	width: 50%;
+	display: inline-block;
+	-webkit-border-radius: 1em;
+	-moz-border-radius: 1em;
+	border-radius: 1em;
+}
+
+.page-qac .scoreContainer{
+}
+
+.page-qac .scoreButton{
+	font-size: 1.5em;
+	padding: 1.5em;
+	color: #ffffff;
+	text-align: center;
+	display: inline-block;
+	margin: 0.5em;
+	width: 1.5em;
+	-webkit-border-radius: 1em;
+	-moz-border-radius: 1em;
+	border-radius: 1em;
+	cursor: pointer;
+	border: 0.2em solid transparent;
+}
+
+.page-qac .scoreButton.selected{
+	background-color: #008c4f;
+	border: 0.2em solid #000000;
+}
+
+.page-qac .scoreButton.processing{
+	background-color: #ffffaa;
+	border: 0.2em solid #aaaaaa;
+	color: #aaaaaa;
+}
+
+.page-qac .voteNavigationContainer{
+	text-align: center;
+}
+
+.page-qac .previous,
+.page-qac .next{
+	background-color: #888888;
+	font-size: 1.5em;
+	padding: 1.5em;
+	color: #ffffff;
+	text-align: center;
+	display: inline-block;
+	margin: 0.5em;
+	width: 5em;
+	-webkit-border-radius: 1em;
+	-moz-border-radius: 1em;
+	border-radius: 1em;
+	cursor: pointer;
+	border: 0.2em solid transparent;
+}
+
+.page-qac .previous.processing,
+.page-qac .next.processing{
+	background-color: #ffffaa;
+	color: #aaaaaa;
+}
+
+.page-qac .keypad{
+	width: 8em;
+	text-align: center;
+	display: inline-block;
+}
+
+.page-qac .key{
+	-webkit-border-radius: 1em;
+	-moz-border-radius: 1em;
+	border-radius: 1em;
+	border: 0.1em solid #aaaaaa;
+	display: inline-block;
+	padding: 0.1em 0.5em;
+	width: 1.0em;
+	margin: 0.1em;
+}
+
+.page-qac .key.go{
+	background-color: #ddffdd;
+	width: 1.8em;
+}
+
+.page-qac .key.clear{
+	background-color: #ffdddd;
+	width: 3em;
+}
+
+.page-qac .applicantContainer{
+	cursor: pointer;
+}
+
+.page-qac .iterator{
+	color: #aaaaaa;
+	font-size: 0.7em;
+}
+
+.page-qac-review .region-header,
+.page-qac-review .region-menubar{
+	display: none;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Admin Page
+ */
+#edit-queen-and-court-export-button{
+	display: block;
+	text-decoration: none;
+	font-size: 15px;
+	text-align: center;
+	background-color: #eee;
+	padding: 5px;
+	color: #000;
+	margin: auto;
+	width: 281px;
+	height: 35px;
+	border-radius: 3px;
+	border: 1px solid #d3d3d3;
+}
+
+.page-qac h2.pageTitle{
+	display: none;
+}
+
+.page-qac-settings #block-queen-and-court-quick-jump-block{
+	display: none;
+}
+/**
+* Queen and Court Master Judge Rank Page
+*/
+.page-qac table.sticky-table{
+	width: 100%;
+	margin: auto;
+	table-layout: fixed;
+	color: #333;
+}
+
+.page-qac-master table tbody{
+	border-top: 4px solid #888;
+	border-bottom: 4px solid #888;
+}
+.page-qac-master tbody tr {
+	border-bottom: none;
+}
+.page-qac-master tbody tr th,
+.page-qac-master thead tr th{
+	text-align: center;
+	text-transform: uppercase;
+
+}
+
+.page-qac-master tbody td{
+	text-align: center;
+}
+
+.page-qac-master table tr.odd{
+	background-color: #eee;
+}
+
+.page-qac-master table tr.even{
+	background-color: #fff;
+}
+
+.page-qac-master table tbody tr td:first-child{
+	font-weight: bolder;
+}
+
+a.edit-vote-link{
+	display: inline-block;
+	margin-left: 5px;
+}
+/**
+* Ipad App Ranker Page
+*/
+.page-qac .region-content{
+	min-width: 700px !important;
+	position: relative;
+}
+
+.page-qac #block-block-3{
+	top: 0;
+	display: inline-block;
+	float: left;
+	margin-right: -100%;
+	position: absolute;
+	z-index: 50000;
+}
+
+.page-qac #block-block-3 p{
+	font-size: 11px;
+}
+
+.page-qac h1.entrant-title{
+	font-weight: lighter;
+	font-size: 60px;
+	margin-bottom:.40em;
+} 
+.page-qac #queen-and-court-form{
+	position: relative;
+}
+
+#edit-queen-rankings{
+	display: none;
+}
+
+#edit-queen-rankings-cover{
+	height: 100px;
+	margin-bottom: 30px;
+}
+.queen-ranking-cover{
+	cursor: pointer;
+	border-radius:20px;
+	padding: 10px 0px 10px 0px;
+	width: 13.5%;
+	margin: 0px 1% 0px 1%;
+	float: left;
+	text-align: center;
+	color: #fff;
+	font-size: 35pt;
+	border: 3px solid #ffffff;
+}
+
+.queen-ranking-cover.selected{
+	border: 3px solid #000000;
+}
+
+.page-qac #RC{
+	background-color: #333333;
+}
+.page-qac #DQ{
+	background-color: #4d2b38;
+}
+
+.page-qac #zero{
+	background-color: #420e23;
+}
+.page-qac #plusone{
+	background-color: #662a42;
+}
+
+.page-qac #plustwo{
+	background-color: #b36484;
+}
+
+.page-qac #plusthree{
+	background-color: #b37990;
+}
+.page-qac option{
+}
+
+.page-qac #RC.selected,
+.page-qac #DQ.selected,
+.page-qac #zero.selected,
+.page-qac #plusone.selected,
+.page-qac #plustwo.selected,
+.page-qac #plusthree.selected{
+	background-color: #008c4f;
+}
+
+.page-qac .form-item{
+	clear: left;
+}
+
+.page-qac .form-item-queen-ids{
+	width: 77%;
+	margin: auto auto 30px auto;
+}
+
+.page-qac .form-item-queen-ids label{
+	float: left;
+	width: 48%;
+	font-size: 50px;
+	font-weight: lighter;
+	margin-top:10pt;
+	text-align:right;
+}
+
+
+.page-qac .form-item-queen-ids select{
+	width: 40%;
+	min-width:180px;
+	font-size: 50px;
+	font-weight: lighter;
+	color: #7C7C7C;
+	border: none;
+	background-color: #eee;
+}
+
+.page-qac .form-item-queen-rankings{
+
+}
+
+
+.page-qac .form-item-queen-rankings label{
+	text-align: center;
+	font-weight: lighter;
+	font-size: 25px;
+}
+
+
+.page-qac .form-item-queen-rankings .form-radios{
+
+}
+
+.page-qac .form-item-queen-rankings .form-radios .form-item{
+	display: inline-block;
+	width: 14%;
+	margin: 0px 1% 0px 1%;
+}
+
+.page-qac .form-item-queen-rankings .form-radios .form-item input{
+	display: block;
+	margin:auto
+}
+
+
+.page-qac .form-item-queen-rankings .form-radios .form-item label{
+	display: block;
+	margin:auto;
+	clear: left;
+}
+
+.page-qac .form-item-queen-special-notes label{
+	text-align: center;
+	font-weight: lighter;
+	font-size: 30px;
+}
+
+.grippie{
+	display: none;
+}
+
+.page-qac .form-item-queen-special-notes{
+	padding-bottom: 100px;
+}
+.page-qac .form-item-queen-special-notes	textarea{
+	border-radius: 20px;
+	height: 225px;
+	font-size: 25px;
+	padding: 2%;
+}
+
+.page-qac #edit-previous-submit{
+	background-color: #4d2b38;
+/*	background-color: rgba(77, 43, 56, .9);
+*/	color: #ffffff;
+	border: none;
+	font-size: 50px;
+	padding: 10px 20px 10px 20px;
+	font-weight: lighter;
+	width: 40%;
+	text-align: center;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+.page-qac #edit-next-submit{
+	background-color: #b37990;
+/*	background-color: rgba(179, 121, 144, .9);
+*/	color: #ffffff;
+	border: none;
+	font-size: 50px;
+	padding: 10px 20px 10px 20px;
+	font-weight: lighter;
+	width: 40%;
+	text-align: center;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+/**
+ * Quick jump
+ */
+.page-qac #queen-and-court-quickjump-form .form-item-entrant{
+	display: inline-block;
+}
+
+.page-qac #queen-and-court-quickjump-form #edit-submit{
+	background-color: #b37990;
+/*	background-color: rgba(179, 121, 144, .9);
+*/	color: #ffffff;
+	border: none;
+	padding: 2px 5px 2px 5px;
+	text-align: center;
+	-webkit-appearance: none;
+  -webkit-border-radius:0; 
+  border-radius:10px;
+}
+
+@media all
+and (min-width : 569px) 
+and (max-width : 1024px)  {
+	.page-qac .region-header,
+	.page-qac .region-menubar,
+	.page-qac #toolbar,
+	.page-qac .tabContainer,
+	.page-qac .region-footer{
+		display: none;
+	}
+
+	.page-qac.not-front .region-content{
+	  width: 100%;
+	}
+
+	.page-qac .mainContainer{
+	  min-width: 0;
+	}
+}
+
+.page-qac .description{
+	font-size: 18px;
+}
+
+.page-qac{
+	background-image: url('./images/rose_logo-01.svg');
+	background-repeat: no-repeat;
+	background-position: top right;
+}
+
+/**
+ * Checkin Page
+ */
+.page-qac-check-in tr{
+	cursor: pointer;
+	color: #000000;
+}
+
+.page-qac-check-in tr.even{
+	background-color: #eeeeee;
+}
+
+.page-qac-check-in tr.odd{
+	background-color: #e5e5e5;
+}
+
+.page-qac-check-in tr.even:hover{
+	background-color: #eeffee;
+}
+
+.page-qac-check-in tr.odd:hover{
+	background-color: #e5ffe5;
+}
+
+.page-qac-check-in .qacCheckin .statusMessage{
+	text-align: center;
+	font-size: 1em;
+}
+
+.page-qac-check-in .qacCheckin .badgeNumber{
+	text-align: center;
+	font-size: 6em;
+	font-weight: bold;
+}
+
+.page-qac-check-in.not-front .region-content,
+.page-qac-tofr-review.not-front .region-content{
+	width: 100%;
+}
+
+.page-qac-check-in #resultTableWrapper{
+	width: 98%;
+	margin: auto;
+}
+
+.page-qac-check-in #resultTableWrapper table,
+.page-qac-check-in table.sticky-table,
+.page-qac-tofr-review table.sticky-table{
+	table-layout: auto;
+	width: 100%;
+	font-size: 12px;
+	color: #000000;
+}
+
+.page-qac-check-in .qacCheckin tr{
+	height: auto;
+	font-size: 0.8em;
+	text-align: left;
+}
+
+.page-qac-check-in .qacCheckin th{
+	border-bottom: 0;
+}
+
+.page-qac-check-in label{
+	font-size: 1.5em;
+	color: #000000;
+}
+
+.page-qac-check-in #quickSearch{
+	font-size: 2em;
+	height: auto;
+	padding: 0.5em;
+}

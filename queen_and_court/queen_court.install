@@ -1,0 +1,537 @@
+<?php
+/**
+ * Implements hook_schema().
+ */
+function queen_court_schema() {
+  $schema = array();
+
+  // Add the Round Schema
+  // Stores the ongoing rounds.
+  $schema['queen_court_round'] = array(
+    'description' => 'Stores ongoing rounds for the judging.',
+    'fields' => array(
+      'rid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique round ID.',
+        ),
+      'name' => array(
+        'description' => 'The descriptive name of the round.', 
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether the round is active.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'stage' => array(
+        'description' => 'Stage of the round.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'year' => array(
+        'description' => 'The year that this round is being used.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'description' => 'The weight (order) assigned to this round.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'Created timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'Updated timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ) + entity_exportable_schema_fields(), 
+    'primary key' => array(
+      'rid'
+    ), 
+  );
+  
+  // Add the scoring schema.
+  // Unifies the actual scoring.
+  $schema['queen_court_score'] = array(
+    'description' => 'Stores unified scoring IDs, Unifies the actual scoring.',
+    'fields' => array(
+      'sid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique score ID.',
+        ),
+      'name' => array(
+        'description' => 'The descriptive name of the score.', 
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether the scoring type is active.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'description' => 'The weight (order) assigned to this score.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'Created timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'Updated timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ) + entity_exportable_schema_fields(), 
+    'primary key' => array(
+      'sid'
+    ), 
+  );
+
+  // Add the applicant schema.
+  // Allows storage of basic applicant data.
+  $schema['queen_court_applicant'] = array(
+    'description' => 'Stores basic applicant data.',
+    'fields' => array(
+      'aid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique applicant ID.',
+      ),
+      'name' => array(
+        'description' => 'The full name of an applicant.', 
+        'type' => 'varchar',
+        'length' => 101,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'first_name' => array(
+        'description' => 'The first name of an applicant.', 
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'last_name' => array(
+        'description' => 'The last name of an applicant.', 
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether or not the applicant is still in the running.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'year' => array(
+        'description' => 'The current year.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'tofr_number' => array(
+        'description' => 'The Tournament of Roses number.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'sports_systems_number' => array(
+        'description' => 'The Sports Systems number.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+
+      'school_name' => array(
+        'description' => 'The name of the applicant\'s school.', 
+        'type' => 'varchar',
+        'length' => 150,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'other_school' => array(
+        'description' => 'The name of the school if "Other"', 
+        'type' => 'varchar',
+        'length' => 120,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'year_in_school' => array(
+        'description' => 'The numeric year in which the applicant is in school.', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'middle_name' => array(
+        'description' => 'The last name of an applicant.', 
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'address' => array(
+        'description' => 'The applicant\'s address.', 
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city' => array(
+        'description' => 'The applicant\'s city.', 
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'state' => array(
+        'description' => 'The applicant\'s state.', 
+        'type' => 'varchar',
+        'length' => 5,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'zip' => array(
+        'description' => 'The applicant\'s zip.', 
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'contact_address' => array(
+        'description' => 'The applicant\'s address.', 
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'contact_city' => array(
+        'description' => 'The applicant\'s city.', 
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'contact_state' => array(
+        'description' => 'The applicant\'s state.', 
+        'type' => 'varchar',
+        'length' => 5,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'contact_zip' => array(
+        'description' => 'The applicant\'s zip.', 
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'phone' => array(
+        'description' => 'The applicant\'s phone number.', 
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'cell_phone' => array(
+        'description' => 'The applicant\'s cell phone number.', 
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'email' => array(
+        'description' => 'The applicant\'s email address.', 
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'any_past_family_royal_court_members' => array(
+        'description' => 'Boolean indicating whether or not the applicant has had any family who was previously in the royal court.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'any_family_tofr_members' => array(
+        'description' => 'Boolean indicating whether or not the applicant has any family who is a member of the Tournament of Roses.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'past_family_royal_court_members_list' => array(
+        'description' => 'A list of any family members who were in the Royal Court.', 
+        'type' => 'text',
+      ),
+      'family_tofr_members_list' => array(
+        'description' => 'A list of any family members who are in the Tournament of Roses', 
+        'type' => 'text',
+      ),
+      'ss_status' => array(
+        'description' => 'Sports Systems Status', 
+        'type' => 'varchar',
+        'length' => 1,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'advance_to_round_2' => array(
+        'description' => 'Advances to Round 2', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'advance_to_round_3' => array(
+        'description' => 'Advances to Round 3', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'advance_to_round_4' => array(
+        'description' => 'Advances to Round 4', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'advance_to_round_2_time' => array(
+        'description' => 'Round 2 - Time to Report', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'advance_to_round_3_time' => array(
+        'description' => 'Round 3 - Time to Report', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'advance_to_round_4_time' => array(
+        'description' => 'Round 4 - Time to Report', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'check_in_to_round_2' => array(
+        'description' => 'Checked into Round 2', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'check_in_to_round_3' => array(
+        'description' => 'Checked into Round 3', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'check_in_to_round_4' => array(
+        'description' => 'Checked into Round 4', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'gpa' => array(
+        'description' => 'Applicant\'s GPA', 
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'ss_application_id' => array(
+        'description' => 'Sports Systems Application ID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'ss_person_id' => array(
+        'description' => 'Sports Systems Person ID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'ss_uuid' => array(
+        'description' => 'Sports Systems Person UUID', 
+        'type' => 'varchar',
+        'length' => 35,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'dob' => array(
+        'description' => 'dob timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'latitude' => array(
+        'description' => 'address latitude',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'longitude' => array(
+        'description' => 'address longitude',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'location_status' => array(
+        'description' => 'Boolean indicating whether or not the applicant is in the area.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'weight' => array(
+        'description' => 'The weight (order) assigned to this applicant.',
+        'type' => 'int',
+        'not null' => true,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'Created timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'Updated timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ) + entity_exportable_schema_fields(), 
+    'primary key' => array(
+      'aid'
+    ), 
+    'indexes' => array(
+      'tofr_number_idx' => array('tofr_number'),
+      'sports_systems_number_idx' => array('sports_systems_number'),
+    ),
+  );
+
+  // Add the voting schema.
+  // Allows storage of voting data.
+  $schema['queen_court_vote'] = array(
+    'description' => 'Stores voting data.',
+    'fields' => array(
+      'vid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique vote ID.',
+        ),
+      'aid' => array(
+        'description' => 'Applicant ID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => 'The descriptive name of the vote.', 
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'description' => 'Judge UID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rid' => array(
+        'description' => 'Round ID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'sid' => array(
+        'description' => 'Score ID', 
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'note' => array(
+        'description' => 'Notes from the judge.', 
+        'type' => 'text',
+        'not null' => false,
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether or not the vote is valid.', 
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'created' => array(
+        'description' => 'Created timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'updated' => array(
+        'description' => 'Updated timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ) + entity_exportable_schema_fields(), 
+    'primary key' => array(
+      'vid'
+    ), 
+    'indexes' => array(
+      'aid_idx' => array('aid'),
+      'uid_idx' => array('uid'),
+      'rid_idx' => array('rid'),
+      'sid_idx' => array('sid'),
+    ),
+  );
+
+  return $schema; 
+}
+
+/**
+ * Implements hook_install(). 
+ */
+function queen_court_install() {
+  // Preset the numbers that are to be skipped.
+  variable_set('queen_court_numbers_to_skip', array(
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 69, 666, 777, 999,
+  ));
+}
+
+/**
+ * Implements hook_uninstall(). 
+ */
+function queen_court_uninstall() {
+  variable_del('queen_court_numbers_to_skip');
+}
