@@ -1,0 +1,8 @@
+name = FXP Trainer Module API
+description = Manages FXP Trainer info
+package = FXP
+dependencies[] = entity
+dependencies[] = commerce
+core = 7.x
+files[] = fxp_trainer.controller.inc
+scripts[] = fxp_trainer.js

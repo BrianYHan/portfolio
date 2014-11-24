@@ -1,0 +1,102 @@
+<?php
+/** 
+ *  Implements hook_menu
+ */
+function form_themer_menu(){
+  $items['admin/config/user-interface/form-themer'] = array(
+    'title' => 'Theme site forms',
+    'description' => 'Theme site forms',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_themer_form'),
+    'access arguments' => array('administer all forms'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+/**
+ * Implement hook_permission()
+ */
+function form_themer_permission(){
+  return array(
+    'administer all forms' => array(
+      'title' => t('Administer Theme site forms'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_form()
+ * Settings page
+ * URI:'admin/config/user-interface/form-themer'
+ */
+function form_themer_form(){
+  $form = array();
+
+  // Query for all products
+  $productQuery = new EntityFieldQuery();
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->execute();
+  $productQueryResult = $productQueryResult['commerce_product'];
+
+  $allProducts = array();
+
+  // Load all products
+  foreach($productQueryResult as $product_id => $product){
+    $allProducts[$product_id] = commerce_product_load($product_id);
+  }
+
+  // Pass in all products so they can be used as options
+  foreach($allProducts as $productID => $productInfo){
+    $allProductOptions[$productID] = $productInfo->title;
+  }
+
+  // Load all product options
+  $form['products_to_change'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $allProductOptions,
+    '#default_value' => variable_get('products_to_change'),
+    '#title' => t('Which products would you like to change the "Add to Cart" button text for?:'),
+  );
+
+  // Change the text value for all class product display submits
+  $form['submit_button_change'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Training Class "Add To Cart" Button Value'),
+    '#default_value' => variable_get('submit_button_change', 'Add To Cart'),
+    '#required' => TRUE,
+  );
+
+
+  //Add other forms here
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_form_alter()
+ */
+function form_themer_form_alter(&$form, $form_state, $form_id){
+  // Get all products from admin screen
+  $allProductsToChange = variable_get('products_to_change');
+  $allProductsToChangeIDs = array();
+  foreach($allProductsToChange as $productsToChangeKey => $productsToChange){
+    if($productsToChange > 0){
+      $allProductsToChangeIDs[$productsToChangeKey] = $productsToChange;
+    }
+  }
+
+  // If the form is a product display
+  if(array_key_exists('product_id',$form)){
+    //If product id of form is in the array of changeable product ids
+    if(in_array($form['product_id']['#value'], $allProductsToChangeIDs)){
+      // Edit submit
+      $form['submit']['#value'] = variable_get('submit_button_change');  
+    }
+    
+  }
+
+  return $form;
+}
+
+
+

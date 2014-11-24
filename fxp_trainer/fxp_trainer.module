@@ -1,0 +1,2252 @@
+<?php
+/**
+ *  @file
+ *  fxp_trainer module definition
+ */
+/** 
+ *  Implements hook_menu
+ *  Implement users entity management menu 
+ *  access arguments: administer everybodysafe users, view everybodysafe users
+ */
+function fxp_trainer_menu(){
+  $items = array();
+
+  $items['admin/config/fxp/trainer/manage/add'] = array(
+    'title' => 'FXP Trainer',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fxp_trainer_form'),
+    'access arguments' => array('administer fxp trainers'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/config/fxp/trainer/manage/edit/%'] = array(
+    'title' => 'FXP Trainer',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fxp_trainer_form', 6),
+    'access arguments' => array('administer fxp trainers'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['trainer-registration'] = array(
+    'title' => 'FXP Trainer Registration',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fxp_trainer_bulk_purchase_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['fxp-trainer/bulk-purchase-finalize'] = array(
+    'title' => 'FXP Trainer Registration',
+    'page callback' => 'fxp_trainer_bulk_order_trainer_finalize',
+    'access arguments' => array('access content'),
+  );
+
+  $items['fxp-trainer/edit-profile/%'] = array(
+    'title' => 'FXP Trainer Profile',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fxp_trainer_edit_profile_form', 2),
+    'access arguments' => array('modify fxp trainer profile'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['fxp-trainer/profile'] = array(
+    'title' => 'FXP Trainer Profile',
+    'page callback' => 'fxp_trainer_view_profile',
+    'access arguments' => array('modify fxp trainer profile'),
+  );
+
+  return $items;
+}
+
+
+
+/**
+ *  Implements hook_entity_info().
+ */
+function fxp_trainer_entity_info(){
+  $fxp_trainer_info['fxp_trainer'] = array(
+    'label' => t('FXP Trainer Profile'),
+    
+    'controller class' => 'EntityAPIController', 
+    'entity class' => 'FXPTrainer',
+    'base table' => 'fxp_trainer',
+    // 'uri callback' => 'fxp_trainer_uri',
+    'fieldable' => TRUE,
+    'module' => 'fxp_trainer',
+    'entity keys' => array(
+      'id' => 'tuid',
+    ),
+    'static cache' => TRUE,
+    'bundles' => array(
+      'fxp_trainer' => array(
+        'label' => 'FXP Trainer',
+        'admin ui' => array(
+          'path' => 'admin/config/fxp/trainer/manage',
+          'access arguments' => array('administer fxp trainers'),
+          'controller class' => 'EntityDefaultUIController',
+        ),
+      ),
+    ),
+    'views controller class' => 'EntityDefaultViewsController',
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Full FXP Trainers'),
+        'custom settings' => FALSE,
+      ),
+    )
+  );
+
+  return $fxp_trainer_info;
+}
+
+/**
+ * Handle URI callback
+ */
+function fxp_trainer_uri($trainer){
+  return array(
+    'path' => 'admin/config/fxp/trainer/manage/edit/' . $trainer->tuid,
+  );
+}
+
+
+/**
+ * Implements hook_entity_property_info_alter
+ *
+ */
+function fxp_trainer_entity_property_info_alter(&$info){
+  $properties = &$info['fxp_trainer']['properties'];
+
+  $properties['created_timestamp']['label'] = t('Date created');
+  $properties['created_timestamp']['type'] = 'date';
+  
+  $properties['updated_timestamp']['label'] = t('Date updated');
+  $properties['updated_timestamp']['type'] = 'date';
+
+  $properties['cert_date']['label'] = t('Certification Date');
+  $properties['cert_date']['type'] = 'date';
+
+  $properties['status']['label'] = t('Status');
+  $properties['status']['options list'] = 'fxp_trainer_status_options';
+
+  $properties['tcid']['label'] = t('Certification Type');
+  $properties['tcid']['options list'] = 'fxp_trainer_cert_type_options';
+
+  $properties['tcgid']['label'] = t('Certification Group');
+  $properties['tcgid']['options list'] = 'fxp_trainer_cert_group_options';
+  
+  $properties['uid']['label'] = t('User');
+  $properties['uid']['description'] = t('Trainer account');
+  $properties['uid']['type'] = 'user';
+
+  $properties['state']['label'] = t('State');
+  $properties['state']['description'] = t('Trainer address - state');
+  $properties['state']['options list'] = 'fxp_trainer_us_state_options';
+
+  $properties['cpid']['label'] = t('Registered Class');
+  $properties['cpid']['description'] = t('Class trainer registered for');
+  $properties['cpid']['options list'] = 'fxp_trainer_get_class_options';
+
+  $properties['listed']['label'] = t('Listed in Trainer Directory');
+  $properties['listed']['options list'] = 'fxp_trainer_listed_options';
+
+}
+
+/**
+ * Trainer Status callback
+ */
+function fxp_trainer_status_options(){
+    return array(
+    0 => 'Candidate',
+    1 => 'Active',
+    2 => 'Expired',
+    3 => 'Pending',
+    4 => 'DNQ',
+    5 => 'Disabled',
+  );
+}
+
+/**
+ * Trainer List Opt In callback
+ */
+function fxp_trainer_listed_options(){
+  return array(
+    0 => 'Unlisted',
+    1 => 'Listed',
+  );
+}
+
+/**
+ * Certification Type callback
+ */
+function fxp_trainer_cert_type_options(){
+    return array(
+    0 => 'FXP Training Level 1',
+  );
+}
+
+/**
+ *  Certification Group callback
+ */
+function fxp_trainer_cert_group_options(){
+  return array(
+    0 => 'None',
+    1 => 'Founders Club',
+    2 => 'FXP 2015',
+  );
+}
+
+/**
+ *  State callback
+ */
+function fxp_trainer_us_state_options(){
+  return array(
+    'AL' => 'Alabama',
+    'AK' => 'Alaska',
+    'AZ' => 'Arizona',
+    'AR' => 'Arkansas',
+    'CA' => 'California',
+    'CO' => 'Colorado',
+    'CT' => 'Connecticut',
+    'DE' => 'Delaware',
+    'DC' => 'District Of Columbia',
+    'FL' => 'Florida',
+    'GA' => 'Georgia',
+    'HI' => 'Hawaii',
+    'ID' => 'Idaho',
+    'IL' => 'Illinois',
+    'IN' => 'Indiana',
+    'IA' => 'Iowa',
+    'KS' => 'Kansas',
+    'KY' => 'Kentucky',
+    'LA' => 'Louisiana',
+    'ME' => 'Maine',
+    'MD' => 'Maryland',
+    'MA' => 'Massachusetts',
+    'MI' => 'Michigan',
+    'MN' => 'Minnesota',
+    'MS' => 'Mississippi',
+    'MO' => 'Missouri',
+    'MT' => 'Montana',
+    'NE' => 'Nebraska',
+    'NV' => 'Nevada',
+    'NH' => 'New Hampshire',
+    'NJ' => 'New Jersey',
+    'NM' => 'New Mexico',
+    'NY' => 'New York',
+    'NC' => 'North Carolina',
+    'ND' => 'North Dakota',
+    'OH' => 'Ohio',
+    'OK' => 'Oklahoma',
+    'OR' => 'Oregon',
+    'PA' => 'Pennsylvania',
+    'RI' => 'Rhode Island',
+    'SC' => 'South Carolina',
+    'SD' => 'South Dakota',
+    'TN' => 'Tennessee',
+    'TX' => 'Texas',
+    'UT' => 'Utah',
+    'VT' => 'Vermont',
+    'VA' => 'Virginia',
+    'WA' => 'Washington',
+    'WV' => 'West Virginia',
+    'WI' => 'Wisconsin',
+    'WY' => 'Wyoming',
+    'ZZ' => 'Not Listed',
+  );
+}
+
+/**
+ * Load single or multiple trainers
+ */
+function fxp_trainer_load($tuid = 0, $reset = FALSE){
+  $tuids = $tuid;
+  if($tuid && !is_array($tuid)){
+    $tuids = array($tuid);
+  }
+  $trainer = fxp_trainer_load_multiple($tuids, $reset);
+  if($trainer){
+    return $trainer;
+  }else{
+    return false;
+  }
+}
+
+
+/**
+ * Load fxp trainer (calls entity_load)
+ */
+function fxp_trainer_load_multiple($tuids = array(), $reset = FALSE){
+  $entity = entity_load('fxp_trainer', $tuids, null, $reset);
+  return $entity;
+}
+
+
+/**
+ *  Implement fxp trainer entity management permissions
+ *  
+ */
+function fxp_trainer_permission(){
+  return array(
+    'administer fxp trainers' => array(
+      'title' => t('Administer FXP Trainers'),
+      'restrict access' => TRUE,
+    ),
+    'view fxp trainers' => array(
+      'title' => t('View FXP Trainers'),
+    ),
+    'administer fxp trainer settings' => array(
+      'title' => t('Administer FXP Trainer Settings'),
+      'restrict access' => TRUE,
+    ),    
+    'modify fxp trainer profile' => array(
+      'title' => t('Modify FXP Trainer Profile'),
+    ),
+  );
+}
+
+
+/**
+ *  Implements hook_module_implements_alter
+ *  Ensure fxp_trainer alter happens after other alters
+ */
+function fxp_trainer_module_implements_alter(&$implementations, $hook){
+  switch($hook){
+    case 'menu_alter':
+      $fxp_trainer = $implementations['fxp_trainer'];
+      unset($implementations['fxp_trainer']);
+      $implementations['fxp_trainer'] = $fxp_trainer;
+      break;
+  }
+}
+
+/**
+ *  Implements hook_menu_alter
+ *  Hide special menu items from trainer dashboard
+ */
+function fxp_trainer_menu_alter(&$items){
+  $items['partner-discounts']['access callback'] = 'fxp_trainer_is_certified';
+  $items['marketing-materials']['access callback'] = 'fxp_trainer_marketing_access_check';
+}
+
+
+/**
+ *  Certified trainer access check
+ */
+function fxp_trainer_is_certified(){
+  
+  $certified = FALSE;
+  global $user;
+  if($user->uid){
+    $uid = $user->uid;
+    if (user_access('administer') || in_array('client', array_values($user->roles))){
+      $certified = TRUE;
+      return $certified;
+    }
+    $trainer = fxp_trainer_lookup("uid", $uid, false, false);
+    if($trainer){
+      if($trainer->status == 1){
+        $certified = TRUE;
+        return $certified;
+      }
+    }
+    
+  }
+  return $certified;
+}
+
+/**
+ *  Founder trainer access check
+ */
+function fxp_trainer_is_founder(){
+  $founder = FALSE;
+  global $user;
+  if($user->uid){
+    $uid = $user->uid;
+    if (user_access('administer') || in_array('client', array_values($user->roles))){
+      $founder = TRUE;
+      return $founder;
+    }
+    $trainer = fxp_trainer_lookup("uid", $uid, false, false);
+    if($trainer){
+      if($trainer->tcgid == 1){
+        $founder = TRUE;
+        return $founder;
+      }
+    }
+    
+  }
+  return $founder;
+}
+
+
+/**
+ * Marketing materials access check
+ */
+function fxp_trainer_marketing_access_check(){
+  $has_access = FALSE;
+  if(fxp_trainer_is_founder() && fxp_trainer_is_certified()){
+    $has_access = TRUE;
+  }
+  return $has_access;
+}
+
+
+/**
+ * Look up trainer by field
+ * @param = type (field name)
+ * @param = value
+ * @param = all_trainers = true/false
+ */
+function fxp_trainer_lookup($type = "uid", $value = false, $all_trainers = false, $include_disabled = true){
+  if($value == false){
+    return false;
+  }
+
+  $trainersQuery = new EntityFieldQuery();
+  if(!$include_disabled){
+    $trainersQueryResult = $trainersQuery->entityCondition('entity_type', 'fxp_trainer')
+     ->propertyCondition($type, $value)
+     ->propertyCondition('status', 5, '!=')
+     ->propertyOrderBy('status')
+     ->execute();
+  }
+  else{
+    $trainersQueryResult = $trainersQuery->entityCondition('entity_type', 'fxp_trainer')
+     ->propertyCondition($type, $value)
+     ->propertyOrderBy('status')
+     ->execute();
+  }
+  
+
+   $trainers = array();
+   
+   if(count($trainersQueryResult) > 0){
+    $entityTUids = array_keys($trainersQueryResult['fxp_trainer']);
+    $trainers = entity_load('fxp_trainer', $entityTUids);
+
+    if($all_trainers == true){
+      return $trainers;
+    }
+    else{
+      $trainers = current($trainers);
+      return $trainers;
+      
+    }
+   }
+   else{
+    return false;
+   }
+}
+
+
+/**
+ * Get trainer profile image
+ */
+function fxp_trainer_get_image($fid){
+  $file = file_load($fid);
+  $image = image_load($file->uri);
+  $content = theme('image_style', array(
+    'path' => $file->uri,
+    'style_name' => 'thumbnail',
+
+  ));
+  return $content;
+}
+
+/**
+ * Implements hook_views_pre_render
+ * Rewrites certain fields for Trainer Directory and Trainer Registration Class List block
+ */
+function fxp_trainer_views_pre_render(&$view){
+  switch($view->name){
+    case "fxp_trainer_directory":
+      foreach($view->result as $res){
+
+        if(!empty($res->fxp_trainer_other_certs)){
+          $certs = explode(',',$res->fxp_trainer_other_certs);
+          $cert_names = array();
+          foreach($certs as $cert){
+            $cert_names[]=fxp_trainer_get_other_certification_options($cert);  
+          }
+          $cert_names_list = implode(", ", $cert_names);
+          $res->fxp_trainer_other_certs = $cert_names_list;
+          
+        }
+        if(!empty($res->fxp_trainer_phone)){
+          $phone = fxp_trainer_format_phone($res->fxp_trainer_phone);
+          $res->fxp_trainer_phone = $phone;
+        }
+        
+        
+      }
+      break;
+
+      case "training_class_block":
+
+        //sort results by full state name, not state code
+        usort($view->result, '_state_name_sort');
+        
+        foreach($view->result as $res){
+
+          //assumes itinerary value is string with format Sunday, January 12 at 9:00am - 6:00pm EST
+          $itin = $res->field_data_field_class_itinerary_field_class_itinerary_value;
+          
+          // gets Sunday, January 12
+          $training_date = strtok($itin, ' ').' '.strtok(' ').' '.strtok(' ');
+          
+          // gets city
+          $loc = $res->field_data_field_address_field_address_locality;
+          $link = $loc . ' - ' . $training_date;
+
+          // gets 9:00am - 6:00pm EST
+          $time = substr(strstr($itin, " at "), 4);
+          
+          $res->field_data_field_address_field_address_name_line = $link;
+          $res->field_data_field_class_itinerary_field_class_itinerary_value = $time;
+          $res->field_field_class_itinerary[0]['rendered']['#markup'] = '<p>' . $time . '</p>';
+          // dsm($res);
+          
+        }
+      break;
+  }
+}
+
+/**
+ * Helper function to compare state names in the training_class_block view
+ * This will look ridiculous in the trainer directory view, since the ZZ state code is in this list
+ */
+function _state_name_sort($a, $b){
+  $states = fxp_trainer_us_state_options();
+  return strcmp($states[$a->field_data_field_address_field_address_administrative_area], $states[$b->field_data_field_address_field_address_administrative_area]);
+}
+
+/**
+ * Implements hook_views_post_render
+ * Outputs trainer profile image based on fid
+ */
+function fxp_trainer_views_post_render(&$view, &$output, &$cache){
+  switch($view->name){
+    case "fxp_trainer_directory":
+    // dsm($output);
+      foreach($view->result as $res){
+        // dsm($res);
+
+        if(!empty($res->fxp_trainer_fxp_fid)){
+
+          // dsm($res->fxp_trainer_fxp_fid);
+          $file_id = $res->fxp_trainer_fxp_fid;
+          $content = fxp_trainer_get_image($file_id);
+          
+          $img = file_load($file_id);
+          
+          // $url = file_create_url($img->uri);
+          
+          
+          
+          $url = image_style_url('large', $img->uri);
+          
+
+          $options = array(
+            'html' => TRUE,
+            'attributes' => array(
+              'class' => array('colorbox'),
+            ),
+            // 'external' => FALSE,
+          );
+          $content2 = l($content, $url, $options);
+          // dsm($content2);
+          
+          $start_string = "[image:".$file_id."]";
+        }else{
+          $content2 = '<span class="no-profile-image"></span>';
+          $start_string = "[image:0]";
+        }
+
+        $string = str_replace($start_string, $content2, $output);
+        $output = $string;
+      }
+    break;
+
+    case "training_class_block":
+
+      $states = fxp_trainer_us_state_options();
+      $state_code = array();
+      $state_name = array();
+      foreach($states as $key => $state){
+        $state_code[] = '<h3>' . $key . '</h3>';
+        $state_name[] = '<h3>' . $state . '</h3>';
+      }
+
+      // dsm($state_name);
+      $string = str_replace($state_code, $state_name, $output);
+      // dsm($string);
+      $output = $string;
+
+    break;
+  }
+}
+
+
+/**
+ *  Implements hook_user_insert
+ *  Adds a new Trainer profile when a new user account with Trainer role is created.
+ */
+function fxp_trainer_user_update(&$edit, $account, $category){
+  if(in_array('trainer', $account->roles)){
+  $trainer = fxp_trainer_lookup("uid", $account->uid, false);
+  $userWrapper = entity_metadata_wrapper('user', $account);
+  $userInfo = $userWrapper;
+   
+    $options = array();
+    if(!$trainer->tuid){
+        $options['email'] = $account->mail;
+        $options['uid'] = $account->uid;
+        
+        // $options['exp_date'] = $userInfo->field_expiration_date->value();
+      
+    }
+    else{
+        $options['tuid'] = $trainer->tuid;
+        $options['email'] = $account->mail;
+        $options['uid'] = $account->uid;
+    }
+    $fxp_trainer = fxp_trainer_crud($options); 
+  }
+}
+
+
+
+
+/**
+ * Form for adding a trainer (admin)
+ */
+function fxp_trainer_form($form, &$form_state, $trainer = NULL){
+  $base_date = '1980-01-01 00:00:00';
+  if($trainer){
+    $trainer = fxp_trainer_load($trainer);
+    if($trainer > 0){
+      $trainer = current($trainer);
+    }
+  }
+
+  $other_certs = fxp_trainer_get_other_certification_options();
+  $us_states = fxp_trainer_us_state_options();
+  
+  $form['first_name'] = array(
+    '#title' => t('First Name'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->first_name) ? $trainer->first_name : '',
+    '#required' => TRUE,
+  );
+  $form['last_name'] = array(
+    '#title' => t('Last Name'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->last_name) ? $trainer->last_name : '',
+    '#required' => TRUE,
+  );
+
+  if(isset($trainer->tuid)){
+    $form['tuid'] = array(
+      '#type' => 'hidden',
+      '#value' => $trainer->tuid,
+    );
+  }
+
+  $form['cert_date'] = array(
+    '#title' => t('Certification date'),
+    '#type' => 'date_select',
+    '#description' => t('Select your certification date'),
+    '#default_value' => array(
+      'month' => format_date($trainer->cert_date, 'custom', 'm'), 
+      'day' => format_date($trainer->cert_date, 'custom', 'd'), 
+      'year' => format_date($trainer->cert_date, 'custom', 'Y'),
+    ),
+    '#date_format' => 'm-d-Y',
+    '#date_year_range' => '2014:2030',
+  );
+
+  $form['birth_date'] = array(
+    '#title' => t('Birth date'),
+    '#type' => 'date_select',
+    '#description' => t('Select your birth date'),
+    '#default_value' => array(
+      'month' => format_date($trainer->birth_date, 'custom', 'm'), 
+      'day' => format_date($trainer->birth_date, 'custom', 'd'), 
+      'year' => format_date($trainer->birth_date, 'custom', 'Y'),
+    ),
+    '#date_format' => 'm-d-Y',
+    '#date_year_range' => '1920:2002',
+    
+  );
+
+  $form['status'] = array(
+    '#title' => t('Certification Status'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->status) ? $trainer->status : '',
+    '#options' => fxp_trainer_status_options(),
+  );
+
+  $form['tcid'] = array(
+    '#title' => t('Certification Type'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->tcid) ? $trainer->tcid : '',
+    '#options' => fxp_trainer_cert_type_options(),
+  );
+
+  $form['tcgid'] = array(
+    '#title' => t('Certification Group'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->tcgid) ? $trainer->tcgid : '',
+    '#options' => fxp_trainer_cert_group_options(),
+  );
+
+  $form['cpid'] = array(
+    '#title' => t('Certification Class'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->cpid) ? $trainer->cpid : '',
+    '#options' => fxp_trainer_get_class_options(TRUE),
+  );
+
+  $form['listed'] = array(
+    '#title' => t('Trainer opts in to be listed in directory'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->listed) ? $trainer->listed : '',
+    '#options' => fxp_trainer_listed_options(),
+  );
+
+  $form['email'] = array(
+    '#title' => t('Email'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->email) ? $trainer->email : '',
+  );
+
+
+  $form['phone'] = array(
+    '#title' => t('Phone Number'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->phone) ? $trainer->phone : '',
+    '#element_validate' => array('check_plain'),
+  );
+
+  $form['website'] = array(
+    '#title' => t('Website'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->website) ? $trainer->website : '',
+    '#description' => t('Enter the full URL of your website, including http://'),
+  );
+
+  $form['address'] = array(
+    '#title' => t('Training Address'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->address) ? $trainer->address : '',
+    '#element_validate' => array('check_plain'),
+  );
+  $form['address_2'] = array(
+    '#title' => t('Address Line 2'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->address_2) ? $trainer->address_2 : '',
+    '#element_validate' => array('check_plain'),
+  );  
+  $form['city'] = array(
+    '#title' => t('City'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->city) ? $trainer->city : '',
+    '#element_validate' => array('check_plain'),
+  );    
+  $form['state'] = array(
+    '#title' => t('State'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->state) ? $trainer->state : 'ZZ',
+    '#options' => $us_states,
+  );    
+  $form['zip'] = array(
+    '#title' => t('ZIP'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->zip) ? $trainer->zip : '',
+    '#element_validate' => array('check_plain'),
+  );  
+
+
+  $selected_certs_string = isset($trainer->other_certs) ? $trainer->other_certs : '0';
+  $selected_certs = explode(',', $selected_certs_string);
+  $form['other_certs'] = array(
+    '#title' => t('Other Certifications'),
+    '#type' => 'select',
+    '#options' => $other_certs,
+    '#multiple' => TRUE,
+    '#default_value' => $selected_certs,
+    '#description' => t('Select all certifications you currently have.'),
+  );
+
+  $form['facebook'] = array(
+    '#title' => t('Facebook Profile'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->facebook) ? $trainer->facebook : '',
+    '#element_validate' => array('check_plain'),
+    '#description' => t('Enter the full URL of your Facebook profile page, including http://'),
+  );  
+  $form['interests'] = array(
+    '#title' => t('Other Interests and Hobbies'),
+    '#type' => 'textarea',
+    '#default_value' => isset($trainer->interests) ? $trainer->interests : '',
+    '#element_validate' => array('check_plain'),
+    '#attributes' => array('maxlength' => 250),
+  );    
+
+  field_attach_form('fxp_trainer', $trainer, $form, $form_state);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => isset($trainer->tuid) ? t('Update Profile') : t('Save trainer'),
+    '#weight' => 50,
+  );
+
+  return $form;
+
+}
+
+
+/**
+ * Validation for trainer form
+ */
+function fxp_trainer_form_validate($form, &$form_state){
+  $valid_email = valid_email_address($form_state['values']['email']);
+  if(!$valid_email){
+    form_set_error('email', t('Must be a valid email address'));
+  }
+  $valid_website = valid_url($form_state['values']['website'], TRUE);
+  if(!$valid_website && !empty($form_state['values']['website'])){
+    form_set_error('website', t('Must be a valid url'));
+  }
+
+  $valid_website = valid_url($form_state['values']['facebook'], TRUE);
+  if(!$valid_website && !empty($form_state['values']['facebook'])){
+    form_set_error('facebook', t('Must be a valid url including http: or https:'));
+  }
+
+  $valid_phone = fxp_trainer_validate_phone($form_state['values']['phone']);
+  if(!$valid_phone && !empty($form_state['values']['phone'])){
+    form_set_error('phone', t('Must be a 7 or 10 digit phone number'));
+  }
+}
+
+
+/**
+ * Submit handler for trainer form
+ */
+function fxp_trainer_form_submit($form, &$form_state){
+  
+
+  $options = array();
+  $options['email'] = $form_state['values']['email'];
+  $current_user = user_load_by_mail($options['email']);
+  $options['uid'] = ($current_user) ? $current_user->uid : '';
+
+  $options['first_name'] = $form_state['values']['first_name'];
+  $options['last_name'] = $form_state['values']['last_name'];
+  
+
+  $options['status'] = $form_state['values']['status'];
+  $options['tcid'] = $form_state['values']['tcid'];
+  $options['tcgid'] = $form_state['values']['tcgid'];
+  
+  if(isset($form_state['values']['cert_date'])){
+    // dsm($form_state['values']['cert_date']);
+    $cert_date = explode('-', $form_state['values']['cert_date']);
+    
+    $month = $cert_date[0];
+    $day = $cert_date[1];
+    $year = $cert_date[2];
+    $date = strtotime($month.'/'.$day.'/'.$year);
+    $options['cert_date'] = $date;
+  }
+
+  if(isset($form_state['values']['birth_date'])){
+    // dsm($form_state['values']['cert_date']);
+    $birth_date = explode('-', $form_state['values']['birth_date']);
+    
+    $month = $birth_date[0];
+    $day = $birth_date[1];
+    $year = $birth_date[2];
+    $date = strtotime($month.'/'.$day.'/'.$year);
+    $options['birth_date'] = $date;
+  }
+
+  if(isset($form_state['values']['other_certs'])){
+    $other_certs = implode(',', $form_state['values']['other_certs']);
+    $options['other_certs'] = $other_certs;
+  }
+
+  // set other options
+  $options['cpid'] = $form_state['values']['cpid'];
+  $options['listed'] = $form_state['values']['listed'];
+  $options['phone'] = fxp_trainer_validate_phone($form_state['values']['phone']);
+  $options['address'] = check_plain($form_state['values']['address']);
+  $options['address_2'] = check_plain($form_state['values']['address_2']);
+  $options['city'] = check_plain($form_state['values']['city']);
+  $options['state'] = $form_state['values']['state'];
+  $options['zip'] = check_plain($form_state['values']['zip']);
+  $options['facebook'] = check_url($form_state['values']['facebook']);
+  $options['interests'] = check_plain($form_state['values']['interests']);
+  $options['website'] = check_url($form_state['values']['website']);
+  
+    if($form_state['values']['op'] == 'Save trainer'){
+      
+      
+      $options['created_IP'] = ip_address();
+      $options['updated_IP'] = ip_address();
+      $options['updated_timestamp'] = REQUEST_TIME;
+      $options['created_timestamp'] = REQUEST_TIME;
+      $trainer = fxp_trainer_crud($options);
+    }
+    else{
+      $options['tuid'] = $form_state['values']['tuid'];
+      $options['updated_IP'] = ip_address();
+      $options['updated_timestamp'] = REQUEST_TIME;
+      
+      $trainer = fxp_trainer_crud($options);
+    }
+
+    // $trainer = entity_ui_form_submit_build_entity($form, $form_state);
+    // $trainer->save();
+    // drupal_set_message(t('The trainer profile for @name has been saved.', array('@name' => $trainer->first_name)));
+  $form_state['redirect'] = 'admin/config/fxp/trainer/manage';
+  
+}
+
+/**
+ *  Get certification classes from commerce product 'certifications' list
+ */
+function fxp_trainer_load_current_classes(){
+  $classesQuery = new EntityFieldQuery();
+  $classesQueryResult = $classesQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    ->propertyCondition('type', 'certifications')
+    ->execute();
+  $classes = array();
+   
+  if(count($classesQueryResult) > 0){
+    $entityIds = array_keys($classesQueryResult['commerce_product']);
+    $classes = entity_load('commerce_product', $entityIds);
+  }
+
+  return($classes);
+}
+
+function fxp_trainer_load_all_classes(){
+  $classesQuery = new EntityFieldQuery();
+  $classesQueryResult = $classesQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('type', 'certifications')
+    ->execute();
+  $classes = array();
+   
+  if(count($classesQueryResult) > 0){
+    $entityIds = array_keys($classesQueryResult['commerce_product']);
+    $classes = entity_load('commerce_product', $entityIds);
+  }
+
+  return($classes);
+}
+
+/**
+ *  Get training location list from 'cities' taxonomy
+ */
+function fxp_trainer_get_location_options($tid = 0){
+  $city_vocab = taxonomy_vocabulary_machine_name_load('cities');
+   //dsm($cities->vid);
+  $terms = taxonomy_get_tree($city_vocab->vid);
+  $locations = array();
+  if($terms){
+   //dsm($terms);
+     foreach($terms as $city){
+      $locations[$city->tid] = $city->name; 
+     }
+    
+   }
+   if($tid == 0){
+    return $locations;
+   }
+   else{
+    return $locations[$tid];
+   }
+
+}
+
+/**
+ *  Get other certifications list from 'other_certifications' taxonomy
+ */
+function fxp_trainer_get_other_certification_options($tid = 0){
+  $cert_vocab = taxonomy_vocabulary_machine_name_load('other_certifications');
+  $terms = taxonomy_get_tree($cert_vocab->vid);
+  $other_certifications = array();
+  if($terms){
+    foreach($terms as $cert){
+      $other_certifications[$cert->tid] = $cert->name;
+    }
+  }
+  if($tid == 0){
+    return $other_certifications;
+  }
+  else{
+    return $other_certifications[$tid];
+  }
+}
+
+/**
+ *  Return class information array keyed by product ID - lists location, date, sku, pid
+ */
+function fxp_trainer_current_classes($all = FALSE){
+  $classes = fxp_trainer_load_current_classes();
+  if($all == TRUE){
+    $classes = fxp_trainer_load_all_classes();
+  }
+  
+
+  $current_classes = array();
+  foreach($classes as $pid => $class){
+    
+    $class = entity_metadata_wrapper('commerce_product', $class);
+    
+    $current_classes[$pid]['location'] = $class->field_location->value()->tid;
+    $current_classes[$pid]['date'] = $class->field_training_date->value();
+    $current_classes[$pid]['sku'] = $class->sku->value();
+    $current_classes[$pid]['cpid'] = $pid;
+    // dsm($class->field_location->value()->tid);
+  }
+  return $current_classes;
+}
+
+
+
+function fxp_trainer_get_class_options($all = FALSE){
+  $current_classes = fxp_trainer_current_classes($all);
+  $options = array(
+    0 => 'No Class Listed'
+  );
+  foreach($current_classes as $key => $class){
+    $location = fxp_trainer_get_location_options($class['location']);
+    $options[$key] = $location . ' - ' . $class['date'];
+  }
+  return $options;
+
+}
+
+
+/**
+ * Creates bulk order for trainer cert purchase page
+ */
+function fxp_trainer_create_bulk_class_order($uid, $product_id, $quantity, $total_price){
+  $final_price = (float) $total_price * 100;
+
+  // create new order
+  $order = commerce_cart_order_new($uid);
+  commerce_order_save($order);
+
+
+  // load product and create certifications line item
+  $product = commerce_product_load($product_id);
+  $line_item = commerce_product_line_item_new($product, $quantity, $order->order_id);
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+  commerce_line_item_save($line_item_wrapper->value());
+
+  // calculate discount
+  $subtotal = $line_item_wrapper->commerce_total->amount->value();
+  $discount = -1*($subtotal - $final_price);
+  $unit_discount = $discount/$quantity;
+
+
+
+
+  // add certifications to order
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $order_wrapper->commerce_line_items[] = $line_item;
+  
+  
+  $order_wrapper->save();
+
+  // get order subtotal
+  $order_total = $order_wrapper->commerce_order_total->value();
+  $order_total = $order_total['amount'];
+  
+
+/* ADD DISCOUNT SEPARATELY */
+
+  // create discount line item
+  $group_discount_line_item = commerce_line_item_new('fxp_group_discount', $order->order_id);
+  $group_discount_line_item->line_item_label = 'Group Discount';
+  $group_discount_line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $group_discount_line_item);
+
+  $group_discount_line_item_wrapper->commerce_unit_price->amount = 0;
+  commerce_line_item_rebase_unit_price($group_discount_line_item_wrapper->value());
+
+  $group_discount_line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+    $group_discount_line_item_wrapper->commerce_unit_price->value(),
+    'discount',
+    array(
+      'amount' => $discount,
+      'currency_code' => 'USD',
+      'data' => array()
+    ),
+    1
+  );
+
+  commerce_line_item_save($group_discount_line_item_wrapper->value());
+
+
+
+  // add discount to order
+  $order_wrapper->commerce_line_items[] = $group_discount_line_item;
+  
+/* END ADD */
+
+  // save order
+  $order_wrapper->save();
+  $order_wrapper = commerce_cart_order_refresh($order);
+
+  return $order_wrapper;
+}
+
+/**
+ *  FXP Trainer bulk purchase certifications form
+ *  Implements hook_form
+ **/
+function fxp_trainer_bulk_purchase_form($form, &$form_state){
+drupal_add_library('system', 'ui');
+
+  if($_SESSION['fxp']['bulk_purchase_trainer']){
+      foreach($_SESSION['fxp']['bulk_purchase_trainer'] as $key => $sessionvar){
+        foreach($_SESSION['fxp']['bulk_purchase_trainer'][$key] as $key2 => $sessionvar2){
+          unset($sessionvar2);
+        }
+        unset($sessionvar);
+      }
+      unset($_SESSION['fxp']['bulk_purchase_trainer']);
+    // dsm($_SESSION);
+  }
+
+  global $user;
+  $uid = $user->uid;
+
+  
+  $current_classes = fxp_trainer_current_classes();
+  $num_reg = range(1,20);
+  $num_reg_array = array_combine($num_reg, $num_reg);
+  $locations = array();
+  foreach($current_classes as $cid => $class){
+    $locations[$cid] = fxp_trainer_get_location_options($class['location']) . ' ' . $class['date'];
+  }
+  
+  $form['number_of_licenses'] = array(
+    '#type' => 'select',
+    '#title' => t('Number of Attendees'),
+    '#description' => t('Group pricing is automatically calculated for groups of 5+.'),
+    '#required' => TRUE,
+    '#options' => $num_reg_array,
+    // '#element_validate' => array('element_validate_integer_positive'),
+  );
+
+  $form['purchaser_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Your Email Address'),
+    '#default_value' => ($uid) ? $user->mail : '',
+    //'#required' => TRUE,
+  );
+
+  $form['training_location'] = array(
+    '#type' => 'select',
+    '#title' => t('Select Your Training'),
+    '#options' => $locations,
+  );
+
+  $form['trainers'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<div id="trainer-profiles">',
+    '#suffix' => '</div>',
+  );
+
+  
+  $num_lic = 0;
+  $unit_price = 225;
+  if(!empty($form_state['values']['number_of_licenses'])){
+    $num_lic = $form_state['values']['number_of_licenses'];
+  }
+  
+  switch($num_lic) {
+    case($num_lic >= 1 && $num_lic <= 4):
+    $unit_price = 225;
+    $total_price = $unit_price * $num_lic;      
+    break;
+
+    case ($num_lic >= 5 && $num_lic <= 9):
+    $unit_price = 199;
+    $total_price = $unit_price * $num_lic;
+    break;
+
+    case ($num_lic >= 10 && $num_lic <= 14):
+    $unit_price = 129;
+    $total_price = $unit_price * $num_lic;
+    break;
+
+    case ($num_lic >= 15):
+    $unit_price = 99;
+    $total_price = $unit_price * $num_lic;
+    break;
+
+    default:
+    $unit_price = 225;
+    $total_price = $unit_price * $num_lic;
+    break;
+  }
+  $form['trainers']['price_per_cert'] = array(
+    '#type' => 'item',
+    '#markup' => '<span>Price per certification: $' . $unit_price . '</span>',
+  );
+
+  $form['trainers']['total_price'] = array(
+    '#type' => 'item',
+    '#markup' => '<span>Total Price: $' . $total_price . '</span>',
+  );
+
+  $form['trainers']['unit_price'] = array(
+    '#type' => 'hidden',
+    '#value' => $unit_price,
+  );
+
+  if(!empty($form['number_of_licenses'])){
+    $form['number_of_licenses'] += array(
+      '#ajax' => array(
+        'callback' => 'fxp_trainer_bulk_purchase_form_refresh',
+        'wrapper' => 'trainer-profiles',
+      ),
+    );
+
+    for($i = 1; $i <= $form_state['values']['number_of_licenses']; $i++){
+      $form['trainers'][$i] = array(
+        '#type' => 'fieldset',
+        '#tree' => TRUE,
+      );
+
+      $form['trainers'][$i]['first_name'] = array(
+        '#title' => t('First Name'),
+        '#type' => 'textfield',
+        '#required' => TRUE,
+      );
+      $form['trainers'][$i]['last_name'] = array(
+        '#title' => t('Last Name'),
+        '#type' => 'textfield',
+        '#required' => TRUE,
+      );
+      $form['trainers'][$i]['email'] = array(
+        '#title' => t('Email'),
+        '#type' => 'textfield',
+        '#required' => TRUE,
+      );
+    }
+
+  }
+
+  $form['submit'] = array(
+    '#value' => t('Register Now'),
+    '#type' => 'submit',
+  );
+
+  $form['refund_policy'] = array(
+    '#type' => 'item',
+    '#description' => t('<p>Your personalized trainer details will be sent to you upon registration.</p><p><strong>REFUND POLICY:</strong> Once you purchase your training, you have access to proprietary training documents. Registration fees are non-refundable and non-transferable.</p>'),
+  );
+
+  $form['#prefix'] = '<h2 class="trainer-registration-form">Register Here</h2>';
+
+  return $form;
+}
+
+/** Handle ajax call for purchase form **/
+function fxp_trainer_bulk_purchase_form_refresh($form, &$form_state){
+  return $form['trainers'];
+}
+
+/** purchase form validation **/
+function fxp_trainer_bulk_purchase_form_validate($form, &$form_state){
+
+  //dsm($form_state['values']);
+  $purchaser_email = $form_state['values']['purchaser_email'];
+
+  $number_of_licenses = $form_state['values']['number_of_licenses'];
+  if(!valid_email_address($purchaser_email) || empty($purchaser_email)){
+    form_set_error('purchaser_email', t('You must enter a valid email address'));
+  }
+  // if(!element_validate_integer_positive($number_of_licenses) || $number_of_licenses < 1){
+  //   form_set_error('number_of_licenses', t('You must enter a number'));
+  // }
+  for($i = 1; $i <= $number_of_licenses; $i++){
+    $first_name = $form_state['values'][$i]['first_name'];
+    $last_name =  $form_state['values'][$i]['first_name'];
+    $email =  $form_state['values'][$i]['email'];
+    if(empty($first_name) || !check_plain($first_name)){
+      form_set_error($i.'][first_name', t('You must enter a first name'));
+    }
+    if(empty($last_name) || !check_plain($last_name)){
+      form_set_error($i.'][last_name', t('You must enter a last name'));
+    }
+    if(empty($email) || !valid_email_address($email)){
+      form_set_error($i.'][email', t('You must enter a valid email address'));
+    }
+  }
+
+}
+
+/** purchase form submission **/
+function fxp_trainer_bulk_purchase_form_submit($form, &$form_state){
+
+  global $user;
+  $purchaser_email = $form_state['values']['purchaser_email'];
+  $number_of_licenses = $form_state['values']['number_of_licenses'];
+  $unit_price = $form_state['values']['unit_price'];
+  $total_price = $unit_price * $number_of_licenses;
+  $selected_class = $form_state['values']['training_location'];
+  // $user = user_load_by_mail($purchaser_email);
+  $current_classes = fxp_trainer_current_classes();
+  $class_location = $current_classes[$selected_class]['location'];
+  $city = fxp_trainer_get_location_options($class_location);
+  // dsm($current_classes);
+  // PURCHASER INFO
+  if($user){
+    $uid = $user->uid;
+    $_SESSION['fxp']['bulk_purchase_trainer']['purchaser_uid'] = $uid;
+    $_SESSION['fxp']['bulk_purchase_trainer']['purchaser_account'] = 'current user';
+  }
+  else{
+    // create new user for Purchaser, get uid from that
+    $uid = 0;
+    $_SESSION['fxp']['bulk_purchase_trainer']['purchaser_uid'] = $uid;
+    $_SESSION['fxp']['bulk_purchase_trainer']['purchaser_account'] = 'anonymous';
+  }
+  $_SESSION['fxp']['bulk_purchase_trainer']['selected_class'] = $selected_class;
+  $_SESSION['fxp']['bulk_purchase_trainer']['city'] = $city;
+  $_SESSION['fxp']['bulk_purchase_trainer']['class_date'] = $current_classes[$selected_class]['date'];
+  $_SESSION['fxp']['bulk_purchase_trainer']['sku'] = $current_classes[$selected_class]['sku'];
+  $_SESSION['fxp']['bulk_purchase_trainer']['cpid'] = $current_classes[$selected_class]['cpid'];
+  $_SESSION['fxp']['bulk_purchase_trainer']['total_price'] = $total_price;
+  $_SESSION['fxp']['bulk_purchase_trainer']['number_of_licenses'] = $number_of_licenses;
+
+  // TRAINER INFO
+  for($i = 1; $i <= $number_of_licenses; $i++){
+    $first_name = $form_state['values'][$i]['first_name'];
+    $last_name =  $form_state['values'][$i]['last_name'];
+    $email =  $form_state['values'][$i]['email'];
+
+    $trainer = user_load_by_mail($email);
+    if($trainer){
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['uid'] = $trainer->uid;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['role'] = $trainer->roles;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['email'] = $email;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['first_name'] = $first_name;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['last_name'] = $last_name;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['trainer_account'] = 'current user';
+
+      $trainer_profile = fxp_trainer_lookup("email", $email, false, false);
+      if($trainer_profile && $trainer_profile->uid == $trainer->uid){
+
+        $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['tuid'] = $trainer_profile->tuid;
+        $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['cert_status'] = $trainer_profile->status;
+      }
+      else{
+        $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['profile'] = 'no profile - please create';
+      }
+      // set role to 'trainer'
+      // check if trainer has record in fxp_trainer table (lookup by uid)
+      // update fxp_trainer table with new cert_date, tcgid, tcid, status based on cert purchased
+      // if new record, set fxp_trainer uid with $trainer->uid
+      // if fxp_trainer name is not set, use values in form
+    }
+    else{
+      $trainer_uid = 0;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['uid'] = $trainer_uid;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['email'] = $email;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['first_name'] = $first_name;
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['last_name'] = $last_name;    
+      $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['trainer_account'] = 'new user';  
+      // create new user with 'trainer' role for Trainer, get uid
+      // fxp_trainer record is automatically created, get tuid
+      // load and update new fxp_trainer record with cert/name data
+    }
+  }
+
+
+  if(isset($uid)){
+    $order_wrapper = fxp_trainer_create_bulk_class_order($uid, $selected_class, $number_of_licenses, $total_price);
+
+
+
+    
+    commerce_cart_order_session_save($order_wrapper->order_id->value());
+    
+    commerce_cart_order_refresh($order_wrapper->order_id->value());
+    $_SESSION['fxp']['bulk_purchase_trainer']['order'] = $order_wrapper->order_id->value();
+
+    // dsm($_SESSION['fxp']['bulk_purchase_trainer']);
+    drupal_goto('checkout/' . $order_wrapper->order_id->value());
+
+  }
+
+}
+
+
+/**
+ *  Trainer Assignment Page - destination after placing bulk training order
+ *  Adds or updates trainer profile records based on bulk order form's trainer list
+ */ 
+function fxp_trainer_bulk_order_trainer_finalize(){
+
+  $output = '';
+
+  if($_SESSION['fxp']['bulk_purchase_trainer']){
+    $order = $_SESSION['fxp']['bulk_purchase_trainer']['order'];
+
+     // 
+    
+    /* Step 1: Load Class Info from session */
+    $pid = $_SESSION['fxp']['bulk_purchase_trainer']['cpid'];
+    $cert_date = $_SESSION['fxp']['bulk_purchase_trainer']['class_date'];
+    $cert_date = str_replace("-", "/", $cert_date);
+    $cert_date = strtotime($cert_date);
+    
+
+    /* Step 2: Load Trainer Info from session */
+    $num_trainers = $_SESSION['fxp']['bulk_purchase_trainer']['number_of_licenses'];
+    
+    // Build class info list
+    $class_info_title = t('Class Information');
+    $class_info_type = 'ul';
+    $class_info_attributes = array(
+      'id' => 'class-info-list',
+    );
+    $class_info_items = array();
+    $class_info_items[] = array(
+      'data' => 'Location: ' . $_SESSION['fxp']['bulk_purchase_trainer']['city'],
+      'id' => 'class_location',
+    );
+    $class_info_items[] = array(
+      'data' => 'Date: ' . $_SESSION['fxp']['bulk_purchase_trainer']['class_date'],
+      'id' => 'class_date',
+    );
+    $class_info_items[] = array(
+      'data' => 'Number of Trainers: ' . $_SESSION['fxp']['bulk_purchase_trainer']['number_of_licenses'],
+      'id' => 'num_trainers',
+    );
+
+    $output.= theme_item_list(array('items' => $class_info_items, 'title' => $class_info_title, 'type' => $class_info_type, 'attributes' => $class_info_attributes));
+
+    // Build output list
+    $title = t('Trainers Registered');
+    $type = 'ul';
+    $attributes = array(
+      'id' => 'bulk-trainer-list',
+    );
+
+    $items = array();
+
+    for($i = 1; $i <= $num_trainers; $i++){
+
+      $current = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['trainer_account'];
+      if($current == 'current user'){
+        $email = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['email'];
+
+        //load trainer user
+        $trainer = user_load_by_mail($email);  
+        $tuid = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['tuid'];
+        if($tuid > 0){
+          $trainer_profile = fxp_trainer_lookup("email", $email, false, false);
+          // dsm($trainer_profile);
+          if($trainer_profile && $trainer_profile->uid == $trainer->uid){
+            if(empty($trainer_profile->first_name)){
+              $first_name = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['first_name'];
+              
+            }
+            else{
+              $first_name = $trainer_profile->first_name;
+            }
+            if(empty($trainer_profile->last_name)){
+              $last_name = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['last_name'];
+            }
+            else{
+              $last_name = $trainer_profile->last_name;
+            }
+            /* update with cpid, set status to 0 if not active, set cert date if not null */
+            $options = array(
+              'tuid' => $tuid,
+              'cpid' => $pid,
+              'cert_date' => $cert_date,
+              'first_name' => $first_name,
+              'last_name' => $last_name,
+            );
+            
+            $items[] = array(
+              'data' => '<span class="name">' . $first_name . ' ' . $last_name . '</span><br/><span class="email">' . $email . '</span>',
+              'id' => $tuid,
+            );
+
+            fxp_trainer_crud($options);
+            $trainer_profile_updated = fxp_trainer_lookup("tuid", $tuid, false, false);
+          }
+        }
+        else{
+          $uid = $trainer->uid;
+
+          /* update user with trainer role */
+          if ($role = user_role_load_by_name('trainer')) {
+            user_multiple_role_edit(array($uid), 'add_role', $role->rid);
+            user_save($trainer);
+          }
+
+          $trainer_profile = fxp_trainer_lookup("email", $email, false, false);
+          // dsm($trainer_profile);
+          $tuid = $trainer_profile->tuid;
+          $options = array(
+            'tuid' => $tuid,
+            'cpid' => $pid,
+            'cert_date' => $cert_date,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+          );
+          $items[] = array(
+            'data' => '<span class="name">' . $first_name . ' ' . $last_name . '</span><br/><span class="email">' . $email . '</span>',
+            'id' => $tuid,
+          );
+          fxp_trainer_crud($options);
+          $trainer_profile_updated = fxp_trainer_lookup("tuid", $tuid, false, false);
+          // dsm($trainer_profile_updated);
+          
+          
+
+        }
+      }
+      /** Trainer is new user **/
+      else{
+        $password = user_password(8);
+        $role = user_role_load_by_name('trainer');
+        $email = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['email'];
+        $first_name = $first_name = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['first_name'];
+        $last_name = $last_name = $_SESSION['fxp']['bulk_purchase_trainer']['trainer '.$i]['last_name'];
+        $fields = array(
+          'name' => $first_name . '_' . $last_name,
+          'mail' => $email,
+          'pass' => $password,
+          'status' => 1,
+          'init' => 'email address',
+          'roles' => array(
+            DRUPAL_AUTHENTICATED_RID => 'authenticated user',
+            $role->rid => 'trainer',
+
+          ),
+        );
+
+        $account = user_save('', $fields);
+        $account->password = $fields['pass'];
+        _user_mail_notify('register_no_approval_required', $account);
+        $trainer_uid = $account->uid;
+        $wrapper = entity_metadata_wrapper('user', $account);
+        $wrapper->field_real_name->set($first_name . ' ' . $last_name);
+        $wrapper->save();
+        $trainer_profile = fxp_trainer_lookup("uid", $trainer_uid, false, false);
+        $tuid = $trainer_profile->tuid;
+        $options = array(
+          'tuid' => $tuid,
+          'cpid' => $pid,
+          'cert_date' => $cert_date,
+          'first_name' => $first_name,
+          'last_name' => $last_name,
+        );
+        $items[] = array(
+          'data' => '<span class="name">' . $first_name . ' ' . $last_name . '</span><br/><span class="email">' . $email . '</span>',
+          'id' => $tuid,
+        );        
+        fxp_trainer_crud($options);
+      }
+    }
+
+
+  }
+
+  
+  $output.= theme_item_list(array('items' => $items, 'title' => $title, 'type' => $type, 'attributes' => $attributes));
+  if($order > 0){
+    $output.= t('<span class="order-message">Your order number is @order. You can view your order on your account page when logged in.</span>', array(
+      '@order' => $order,
+    ));  
+  }else{
+    $output.= t('<span class="order-message">No trainer profiles were created.</span>');
+    // CLEAR SESSION
+  }
+  foreach($_SESSION['fxp']['bulk_purchase_trainer'] as $key => $sessionvar){
+    foreach($_SESSION['fxp']['bulk_purchase_trainer'][$key] as $key2 => $sessionvar2){
+      unset($sessionvar2);
+    }
+    unset($sessionvar);
+  }
+  unset($_SESSION['fxp']['bulk_purchase_trainer']);
+  return $output;
+
+}
+
+
+/**
+ * Clear bulk order session when class product is removed
+ * Implements hook_commerce_cart_product_remove
+ */
+function fxp_trainer_commerce_cart_product_remove($order, $product, $quantity, $line_item){
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+  $has_discount = FALSE;
+  $has_bulk_session = FALSE;
+  $removed_cert = FALSE;
+  $discount_id = 0;
+
+  if(isset($_SESSION['fxp']['bulk_purchase_trainer'])){
+    $has_bulk_session = TRUE;
+  }
+
+  foreach($order_wrapper->commerce_line_items as $order_line_item){
+    if($order_line_item->type->value() == 'fxp_group_discount'){
+      $discount_id = $order_line_item->line_item_id->value();
+      
+      $has_discount = TRUE;
+    }
+  }
+
+  if($line_item_wrapper->commerce_product->type->value() == 'certifications'){
+    $removed_cert = TRUE;
+
+  }
+
+  if($removed_cert && ($has_discount || $has_bulk_session)){
+   // also remove bulk discount line item
+    if($has_discount){
+      // dsm($has_discount);
+      commerce_line_item_delete($discount_id);
+      commerce_order_save($order_wrapper->value());
+    }
+    
+    if($has_bulk_session){
+      foreach($_SESSION['fxp']['bulk_purchase_trainer'] as $key => $sessionvar){
+        foreach($_SESSION['fxp']['bulk_purchase_trainer'][$key] as $key2 => $sessionvar2){
+          unset($sessionvar2);
+        }
+        unset($sessionvar);
+      }
+      unset($_SESSION['fxp']['bulk_purchase_trainer']);
+    }
+  }
+}
+
+
+
+
+/**
+ *  Simple phone number validation
+ */  
+function fxp_trainer_validate_phone($string) {
+  $numbersOnly = ereg_replace("[^0-9]", "", $string);
+  $numberOfDigits = strlen($numbersOnly);
+  if ($numberOfDigits == 7 or $numberOfDigits == 10) {
+      return $numbersOnly;
+  } else {
+      return FALSE;
+  }
+}
+
+function fxp_trainer_format_phone($string){
+  if(strlen($string) == 7){
+    $phone = substr($string, 0, 3) . '-' . substr($string, 3);
+  }
+  elseif(strlen($string) == 10){
+    $phone = '(' . substr($string, 0, 3) . ') ' . substr($string, 3, 3) . '-' . substr($string, 6);
+  }
+  else{
+    $phone = '';
+  }
+  return $phone;
+}
+
+
+/**
+ * Form for updating a trainer profile (trainer/public view)
+ */
+function fxp_trainer_edit_profile_form($form, &$form_state, $trainer_id = NULL){
+  global $user;
+
+  if($user->uid){
+    $uid = $user->uid;
+  }
+  else{
+    $dest = drupal_get_destination();
+    drupal_goto('user/login', $dest);
+  }
+  
+
+  if($trainer_id){
+    $trainer = fxp_trainer_load($trainer_id);
+    if($trainer > 0){
+      $trainer = current($trainer);
+    }
+  }
+
+  else{
+    $trainer = fxp_trainer_lookup("uid", $uid, false, false);
+    if(!empty($trainer)){
+      $trainer = current($trainer);
+    }
+  }
+  $other_certs = fxp_trainer_get_other_certification_options();
+  $us_states = fxp_trainer_us_state_options();
+
+  // dsm($other_certs);
+  $base_date = '1980-01-01 00:00:00';
+  $form = array();
+  
+  $form['first_name'] = array(
+    '#title' => t('First Name'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->first_name) ? $trainer->first_name : '',
+    '#required' => TRUE,
+    '#element_validate' => array('check_plain'),
+  );
+  $form['last_name'] = array(
+    '#title' => t('Last Name'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->last_name) ? $trainer->last_name : '',
+    '#required' => TRUE,
+    '#element_validate' => array('check_plain'),
+  );
+
+
+  $form['tuid'] = array(
+    '#type' => 'hidden',
+    '#value' => $trainer->tuid,
+  );
+
+
+  $form['birth_date'] = array(
+    '#title' => t('Birth date'),
+    '#type' => 'date_select',
+    '#description' => t('Select your birth date'),
+    '#default_value' => array(
+      'month' => format_date($trainer->birth_date, 'custom', 'm'), 
+      'day' => format_date($trainer->birth_date, 'custom', 'd'), 
+      'year' => format_date($trainer->birth_date, 'custom', 'Y'),
+    ),
+    '#date_year_range' => '1920:2002',
+    '#date_format' => 'm-d-Y',
+  );
+
+
+  $form['email'] = array(
+    '#title' => t('Email'),
+    '#type' => 'item',
+    '#markup' => isset($trainer->email) ? $trainer->email : '',
+  );
+
+  $form['phone'] = array(
+    '#title' => t('Phone Number'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->phone) ? $trainer->phone : '',
+    '#element_validate' => array('check_plain'),
+  );
+
+  $form['website'] = array(
+    '#title' => t('Website'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->website) ? $trainer->website : '',
+    '#description' => t('Enter the full URL of your website, including http://'),
+  );
+
+  $form['address'] = array(
+    '#title' => t('Address or city and state where you teach'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->address) ? $trainer->address : '',
+    '#element_validate' => array('check_plain'),
+  );
+  $form['address_2'] = array(
+    '#title' => t('Address Line 2'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->address_2) ? $trainer->address_2 : '',
+    '#element_validate' => array('check_plain'),
+  );  
+  $form['city'] = array(
+    '#title' => t('City'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->city) ? $trainer->city : '',
+    '#element_validate' => array('check_plain'),
+    '#required' => TRUE,
+  );    
+  $form['state'] = array(
+    '#title' => t('State'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->state) ? $trainer->state : 'ZZ',
+    '#options' => $us_states,
+    '#required' => TRUE,
+  );    
+  $form['zip'] = array(
+    '#title' => t('ZIP'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->zip) ? $trainer->zip : '',
+    '#element_validate' => array('check_plain'),
+  );  
+
+
+  $selected_certs_string = isset($trainer->other_certs) ? $trainer->other_certs : '0';
+  $selected_certs = explode(',', $selected_certs_string);
+  $form['other_certs'] = array(
+    '#title' => t('Other Certifications'),
+    '#type' => 'select',
+    '#options' => $other_certs,
+    '#multiple' => TRUE,
+    '#default_value' => $selected_certs,
+    '#description' => t('Select all certifications you currently have.'),
+  );
+
+  $form['facebook'] = array(
+    '#title' => t('Facebook Profile'),
+    '#type' => 'textfield',
+    '#default_value' => isset($trainer->facebook) ? $trainer->facebook : '',
+    '#element_validate' => array('check_plain'),
+    '#description' => t('Enter the full URL of your Facebook profile page, including http://'),
+  );  
+  $form['interests'] = array(
+    '#title' => t('Other Interests and Hobbies'),
+    '#type' => 'textarea',
+    '#default_value' => isset($trainer->interests) ? $trainer->interests : '',
+    '#element_validate' => array('check_plain'),
+    '#attributes' => array('maxlength' => 250),
+  );    
+
+  $form['listed'] = array(
+    '#title' => t('Opt In to be Listed In Directory'),
+    '#type' => 'select',
+    '#default_value' => isset($trainer->listed) ? $trainer->listed : '',
+    '#options' => fxp_trainer_listed_options(),
+  );
+  
+
+  /* Profile Picture */
+
+    if($trainer->fxp_fid > 0){
+      $image = file_load($trainer->fxp_fid)->uri;
+      $style = 'thumbnail';
+      $form['fxp_image'] = array(
+        '#markup' => theme('image_style', array('path' => $image, 'style_name' => $style)),
+      );
+
+    }
+
+    $form['fxp_image_fid'] = array(
+      '#title' => t('Image'),
+      '#type' => 'managed_file',
+      '#description' => t('Please click UPDATE PROFILE below to upload your profile picture.'),
+      '#default_value' => $trainer->fxp_fid,
+      '#upload_validators' => array(
+        'file_validate_extensions' => array('gif png jpg jpeg'),
+        
+      ),
+      '#upload_location' => 'public://fxp_trainer_profile_images/',
+      '#validate' => 'fxp_trainer_profile_image_form_validate',
+      '#submit' => array('fxp_trainer_profile_image_form_submit'),
+    );
+
+
+   /* END Profile Picture */
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => isset($trainer->tuid) ? t('Update Profile') : t('Save trainer'),
+    '#weight' => 50,
+  );
+
+  return $form;
+
+}
+
+/**
+ *  validates user picture upload
+ */
+function fxp_trainer_profile_image_form_validate($form, &$form_state) {
+
+  if (!isset($form_state['values']['fxp_image_fid']) || !is_numeric($form_state['values']['fxp_image_fid']) || ($form_state['values']['fxp_image_fid']) == 0) {
+    form_set_error('fxp_image_fid', t('Please select an image to upload.'));
+  }
+}
+
+/**
+ *  finalizes user picture upload
+ */
+function fxp_trainer_profile_image_form_submit($form, &$form_state) {
+  $trainer = fxp_trainer_lookup("tuid", $form_state['values']['tuid'], false, false);
+  
+  if ($form_state['values']['fxp_image_fid'] > 0) {
+    // The new file's status is set to 0 or temporary and in order to ensure
+    // that the file is not removed after 6 hours we need to change it's status
+    // to 1. Save the ID of the uploaded image for later use.
+    $file = file_load($form_state['values']['fxp_image_fid'])->uri;
+    $file->status = FILE_STATUS_PERMANENT;
+    file_save($file);
+
+    // When a module is managing a file, it must manage the usage count.
+    // Here we increment the usage count with file_usage_add().
+    file_usage_add($file, 'fxp_trainer', 'profile_image', 1);
+    $trainer->fxp_fid = $form_state['values']['fxp_image_fid'];
+    // Save the fid of the file so that the module can reference it later.
+
+  }
+  // If the file was removed we need to remove the module's reference to the
+  // removed file's fid, and remove the file.
+  elseif ($form_state['values']['fxp_image_fid'] == 0) {
+    // Retrieve the old file's id.
+    $fid = $trainer->fxp_fid;
+    $file = $fid ? file_load($fid) : FALSE;
+    if ($file) {
+      // When a module is managing a file, it must manage the usage count.
+      // Here we decrement the usage count with file_usage_delete().
+      file_usage_delete($file, 'fxp_trainer', 'profile_image', 1);
+
+      // The file_delete() function takes a file object and checks to see if
+      // the file is being used by any other modules. If it is the delete
+      // operation is cancelled, otherwise the file is deleted.
+      file_delete($file);
+    }
+
+    // Either way the module needs to update it's reference since even if the
+    // file is in use by another module and not deleted we no longer want to
+    // use it.
+    $trainer->fxp_fid = 0;
+    //drupal_set_message(t('The image @image_name was removed.', array('@image_name' => $file->filename)));
+  }
+  entity_save('fxp_trainer', $trainer);
+  // Save the name of the image style choosen by the user.
+  
+}
+
+/**
+ * Validation for trainer form
+ */
+function fxp_trainer_edit_profile_form_validate($form, &$form_state){
+
+  $valid_website = valid_url($form_state['values']['website'], TRUE);
+  if(!$valid_website && !empty($form_state['values']['website'])){
+    form_set_error('website', t('Must be a valid url'));
+  }
+
+    $valid_website = valid_url($form_state['values']['facebook'], TRUE);
+  if(!$valid_website && !empty($form_state['values']['facebook'])){
+    form_set_error('facebook', t('Must be a valid url including http: or https:'));
+  }
+
+  $valid_phone = fxp_trainer_validate_phone($form_state['values']['phone']);
+  if(!$valid_phone && !empty($form_state['values']['phone'])){
+    form_set_error('phone', t('Must be a 7 or 10 digit phone number'));
+  }
+}
+
+
+/**
+ * Submit handler for trainer form
+ */
+function fxp_trainer_edit_profile_form_submit($form, &$form_state){
+  
+
+  $options = array();
+
+
+  $options['first_name'] = check_plain($form_state['values']['first_name']);
+  $options['last_name'] = check_plain($form_state['values']['last_name']);
+  
+  // process formatted dates
+  if(isset($form_state['values']['birth_date'])){
+    
+    $birth_date = explode('-', $form_state['values']['birth_date']);
+    
+    $month = $birth_date[0];
+    $day = $birth_date[1];
+    $year = $birth_date[2];
+    $date = strtotime($month.'/'.$day.'/'.$year);
+    $options['birth_date'] = $date;
+  }
+
+  if(isset($form_state['values']['other_certs'])){
+    $other_certs = implode(',', $form_state['values']['other_certs']);
+    $options['other_certs'] = $other_certs;
+  }
+
+  // set other options
+  $options['phone'] = fxp_trainer_validate_phone($form_state['values']['phone']);
+  $options['listed'] = $form_state['values']['listed'];
+  $options['address'] = check_plain($form_state['values']['address']);
+  $options['address_2'] = check_plain($form_state['values']['address_2']);
+  $options['city'] = check_plain($form_state['values']['city']);
+  $options['state'] = $form_state['values']['state'];
+  $options['zip'] = check_plain($form_state['values']['zip']);
+  $options['facebook'] = check_url($form_state['values']['facebook']);
+  $options['interests'] = check_plain($form_state['values']['interests']);
+  $options['website'] = check_url($form_state['values']['website']);
+  $options['tuid'] = $form_state['values']['tuid']; // required to set as update, not new
+  $options['updated_IP'] = ip_address();
+  $options['updated_timestamp'] = REQUEST_TIME;
+  
+  $trainer = fxp_trainer_crud($options);
+  
+  // set user image field  
+  if(isset($form_state['values']['fxp_image_fid']) && $form_state['values']['fxp_image_fid']!= 0){
+    if($form_state['values']['fxp_image_fid'] > 0){
+       $file = file_load($form_state['values']['fxp_image_fid']);
+       $file->status = FILE_STATUS_PERMANENT;
+       file_save($file);
+      $trainer->fxp_fid = $form_state['values']['fxp_image_fid'];
+      file_usage_add($file, 'fxp_trainer', 'profile_image', 1);
+    }
+    elseif($form_state['values']['fxp_image_fid'] == 0 && $trainer->fxp_fid > 0){
+       $file = file_load($trainer->fxp_fid);
+       file_delete($file);
+      $trainer->fxp_fid = 0;
+      file_usage_delete($file, 'fxp_trainer', 'profile_image', 1);
+    }
+    entity_save('fxp_trainer', $trainer);
+    
+  }
+
+
+  $form_state['redirect'] = 'fxp-trainer/profile';
+  
+}
+
+
+/**
+ * Page for viewing a trainer profile
+ */
+function fxp_trainer_view_profile(){
+  global $user;
+
+  if($user->uid){
+    $uid = $user->uid;
+  }
+  else{
+    $dest = drupal_get_destination();
+    drupal_goto('user/login', $dest);
+  }
+  
+
+  
+
+  
+    $trainer = fxp_trainer_lookup("uid", $uid, false, false);
+    
+    $selected_certs = explode(',', $trainer->other_certs);
+    $optin = array();
+    $optin = fxp_trainer_listed_options();
+
+   
+    $trainer_certs = array();
+    foreach($selected_certs as $tid){
+      $trainer_certs[] = fxp_trainer_get_other_certification_options($tid);
+    }
+
+    $other_cert_list = implode(', ', array_values($trainer_certs));
+    $state_list = fxp_trainer_us_state_options();
+    $user_photo = '';
+    if($trainer->fxp_fid != 0){
+      $photo = file_load($trainer->fxp_fid)->uri;
+      $user_photo = theme('image_style', array(
+          'style_name' => 'thumbnail',
+          'path' => $photo,
+          'alt' => 'You',
+        ));
+    }
+
+  $output = '';
+  $output .= $user_photo;
+
+  $title = t('Profile Information');
+  $type = 'ul';
+  $attributes = array(
+    'id' => 'profile-info',
+  );
+
+    $items = array();
+
+    $items[] = array(
+      'data' => $trainer->first_name . ' ' . $trainer->last_name,
+      'id' => 'trainer-name',
+    );
+    $items[] = array(
+      'data' => 'Trainer ID: ' . $trainer->uid,
+      'id' => 'trainer-id',
+    );
+    $items[] = array(
+      'data' => 'Birth Date: ' . format_date($trainer->birth_date, 'custom', 'n-j-Y'),
+      'id' => 'trainer-birth-date',
+    );
+    
+    $items[] = array(
+      'data' => 'Email: ' . $trainer->email,
+      'id' => 'trainer-email',
+    );
+    $items[] = array(
+      'data' => 'Phone: ' . fxp_trainer_format_phone($trainer->phone),
+      'id' => 'trainer-phone',
+    );
+    $items[] = array(
+      'data' => 'Training Address: <br/>' . $trainer->address . '<br/>' . $trainer->address_2 . '<br/>' . $trainer->city . '<br/>' . $state_list[$trainer->state] . '<br/>' . $trainer->zip,
+      'id' => 'trainer-address',
+    );
+    $items[] = array(
+      'data' => 'Website: ' . $trainer->website,
+      'id' => 'trainer-website',
+    );
+
+    $items[] = array(
+      'data' => 'Facebook Profile Name: ' . $trainer->facebook,
+      'id' => 'trainer-facebook',
+    );    
+
+    $items[] = array(
+      'data' => 'Other Certifications: ' . $other_cert_list,
+      'id' => 'trainer-other-certs',
+    );
+
+    $items[] = array(
+      'data' => 'Other Interests and Hobbies: ' . $trainer->interests,
+      'id' => 'trainer-other-interests',
+    );    
+
+    $items[] = array(
+      'data' => 'Trainer Directory Opt In: ' . $optin[$trainer->listed],
+      'id' => 'trainer-listed',
+    );   
+
+    $profile_link = l(t('Edit Profile'), 'fxp-trainer/edit-profile/' . $trainer->tuid, array('attributes' => array('class' => array('profile-link button'))));
+
+
+    
+   $output.= theme_item_list(array('items' => $items, 'title' => $title, 'type' => $type, 'attributes' => $attributes)); 
+   $output.= $profile_link;
+    
+            
+  return $output;           
+
+
+
+}
+
+
+/**
+ * Implements hook_commerce_checkout_pane_info()
+ * Set up redirect on bulk order checkout completion
+ */
+function fxp_trainer_commerce_checkout_pane_info() {
+  $panes['fxp_trainer'] = array(
+    'title' => t('FXP Trainer Custom Redirect'),
+    'name' => t('FXP Trainer Custom Redirect'),
+    'page' => 'checkout',
+    'weight' => 11,
+    'file' => 'fxp_trainer.checkout_pane.inc',
+    'base' => 'fxp_trainer_pane',
+  );
+
+  return $panes;
+}
+
+
+/**
+ * Trainer CRUD
+ */
+function fxp_trainer_crud($options){
+
+  //dsm($options);
+  // If the trainer didn't exist, add it.
+  // Otherwise, load it.
+  if($options['tuid'] != 0){
+    $entity = entity_load('fxp_trainer', array($options['tuid']));
+    //dsm($entity);
+    $entity = reset($entity);
+    foreach($options as $key => $value){
+      if(isset($entity->$key)){
+        $entity->$key = $value;
+      }
+    }
+    $watchdog = t('Trainer Profile updated for User [@uid]',
+        array(
+          '@uid' => $options['uid'],
+        ));
+  }else{
+    $entity = entity_create('fxp_trainer', array());
+    $entity->created_timestamp = REQUEST_TIME;
+    $options = array_merge(array(
+      
+      'uid' => 0,
+      'tcid' => 0,
+      'tcgid' => 0,
+      'cert_date' => 0,
+      'status' => 0,
+      'cpid' => 0,
+      
+      'created_IP' => 0,
+      'updated_IP' => 0,
+      'module' => '',
+      'first_name' => '',
+      'last_name' => '',
+      'email' => '',
+      'phone' => '',
+      'fxp_fid' => 0,
+      'address' => '',
+      'address_2' => '',
+      'city' => '',
+      'state' => 'ZZ',
+      'zip' => '',
+      'facebook' => '',
+      'interests' => '',
+      'birth_date' => 0,
+      'website' => '',
+      'other_certs' => '0',
+      'listed' => 0,
+    ), $options);
+
+    $entity->uid = $options['uid'];
+    $entity->tcid = $options['tcid'];
+    $entity->tcgid = $options['tcgid'];
+    $entity->cpid = $options['cpid'];
+    $entity->cert_date = $options['cert_date'];
+    $entity->status = $options['status'];
+    $entity->created_timestamp = $options['created_timestamp'];
+    $entity->created_IP = $options['created_IP'];
+    $entity->updated_IP = $options['updated_IP'];
+    $entity->module = $options['module'];
+    $entity->first_name = $options['first_name'];
+    $entity->last_name = $options['last_name'];
+    $entity->email = $options['email'];
+    $entity->phone = $options['phone'];
+    $entity->fxp_fid = $options['fxp_fid'];
+    $entity->address = $options['address'];
+    $entity->address_2 = $options['address_2'];
+    $entity->city = $options['city'];
+    $entity->state = $options['state'];
+    $entity->zip = $options['zip'];
+    $entity->facebook = $options['facebook'];
+    $entity->interests = $options['interests'];
+    $entity->birth_date = $options['birth_date'];
+    $entity->website = $options['website'];
+    $entity->other_certs = $options['other_certs'];
+    $entity->listed = $options['listed'];
+    $entity->updated_timestamp = REQUEST_TIME;  
+    $watchdog = t('Trainer Profile created for User [@uid]',
+      array(
+        '@uid' => $entity->uid,
+      ));    
+  }
+
+  
+  
+  $entity->save();
+
+
+  watchdog('fxp_trainer', $watchdog, $variables = null, WATCHDOG_INFO, 'link');
+  return $entity;
+}

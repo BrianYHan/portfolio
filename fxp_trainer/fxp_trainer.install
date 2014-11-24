@@ -1,0 +1,300 @@
+<?php
+/**
+ * @file
+ * Install trainers table for FXP
+ */
+
+ /**
+  * Implements hook_schema().
+  */
+
+ /**
+  * Status values:
+  * 0: candidate
+  * 1: active
+  * 2: expired
+  * 3: pending (failed exam first time)
+  * 4: DNQ (failed exam second time - second exam taken within 6 months)
+  */
+
+
+  function fxp_trainer_schema() {
+    $schema = array();
+
+    $schema['fxp_trainer'] = array(
+      'description' => 'FXP Trainer table for Entity',
+      'fields' => array(
+        'tuid' => array(
+          'description' => 'Trainer UID',
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'uid' => array(
+          'description' => 'Drupal User ID of trainer',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'tcid' => array(
+          'description' => 'Certification Type (Level 1, Level 2, etc - tcid in cert table)',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'cert_date' => array(
+          'description' => 'Original certification date',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'tcgid' => array(
+          'description' => 'Membership group the trainer belongs to (Founders Club, 2015, etc)',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'cpid' => array(
+          'description' => 'Certification Product ID',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'status' => array(
+          'description' => 'Certification status (candidate, active, pending, expired, DNQ)',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'created_timestamp' => array(
+          'description' => 'Created timestamp',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'updated_timestamp' => array(
+          'description' => 'Updated timestamp',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'created_IP' => array(
+          'description' => 'IP address of user who created the record',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),
+        'updated_IP' => array(
+          'description' => 'IP address of user who updated the record',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),
+        'first_name' => array(
+          'description' => 'First Name of Trainer',
+          'type' => 'varchar',
+          'length' => '50',
+          'not null' => TRUE,
+          'default' => '',
+        ),
+        'last_name' => array(
+          'description' => 'Last Name of Trainer',
+          'type' => 'varchar',
+          'length' => '50',
+          'not null' => TRUE,
+          'default' => '',
+        ),     
+        'email' => array(
+          'description' => 'Trainer email address',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),  
+        'phone' => array(
+          'description' => 'Trainer phone number',
+          'type' => 'varchar',
+          'length' => '50',
+          'not null' => TRUE,
+          'default' => '',
+        ), 
+         'fxp_fid' => array(
+          'description' => 'Trainer image file ID',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),   
+        'address' => array(
+          'description' => 'Training address',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),      
+        'address_2' => array(
+          'description' => 'Training address 2',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),   
+        'city' => array(
+          'description' => 'Training address - city',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),   
+        'state' => array(
+          'description' => 'Training address - state',
+          'type' => 'varchar',
+          'length' => '8',
+          'not null' => TRUE,
+          'default' => 'ZZ',
+        ),        
+        'zip' => array(
+          'description' => 'Training address - zip',
+          'type' => 'varchar',
+          'length' => '20',
+          'not null' => TRUE,
+          'default' => '',
+        ),                                  
+        'birth_date' => array(
+          'description' => 'Trainer birth date',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),  
+        'website' => array(
+          'description' => 'Trainer website',
+          'type' => 'varchar',
+          'length' => '255',
+          'not nul' => TRUE,
+          'default' => '',
+        ),    
+        'facebook' => array(
+          'description' => 'Trainer facebook page',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),           
+        'other_certs' => array(
+          'description' => 'Other certifications',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '0',
+        ),         
+        'interests' => array(
+          'description' => 'Trainer interests',
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),       
+        'listed' => array(
+          'description' => 'Trainer opts to be listed in directory',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),                   
+      ) + entity_exportable_schema_fields(),
+      'primary key' => array('tuid'),
+      
+      'indexes' => array(
+        'drupal_id' => array('uid'),
+        'certification_type' => array('tcid'),
+        'certification_group' => array('tcgid'),
+      ),
+    );
+    return $schema;
+  }
+  
+
+  /**
+   * Add product ID field
+   */
+  function fxp_trainer_update_7000(&$sandbox){
+    db_add_field('fxp_trainer', 'cpid', array(
+      'description' => 'Certification Product ID',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ));
+  }
+
+  /**
+   * Add other certifications field
+   */
+  function fxp_trainer_update_7001(&$sandbox){
+    db_add_field('fxp_trainer', 'other_certs', array(
+      'description' => 'Other certifications',
+      'type' => 'varchar',
+      'length' => '255',
+      'not null' => TRUE,
+      'default' => '0',
+    ));
+  }
+
+  /**
+   * Add location, bio, facebook, interests fields
+   */
+    function fxp_trainer_update_7002(&$sandbox){
+      db_add_field('fxp_trainer', 'address_2', array(
+        'description' => 'Training address 2',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ));
+      db_add_field('fxp_trainer', 'city', array(
+        'description' => 'Training address - city',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ));
+      db_add_field('fxp_trainer', 'state', array(
+        'description' => 'Training address - state',
+        'type' => 'varchar',
+        'length' => '8',
+        'not null' => TRUE,
+        'default' => 'ZZ',
+      ));   
+      db_add_field('fxp_trainer', 'zip', array(
+        'description' => 'Training address - zip',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => TRUE,
+        'default' => '',
+      ));    
+      db_add_field('fxp_trainer', 'facebook', array(
+        'description' => 'Trainer facebook page',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ));           
+      db_add_field('fxp_trainer', 'interests', array(
+        'description' => 'Trainer interests',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ));            
+    }
+
+  /**
+   * Add list opt in field
+   */
+  function fxp_trainer_update_7003(&$sandbox){
+    db_add_field('fxp_trainer', 'listed', array(
+          'description' => 'Trainer opts to be listed in directory',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ));
+  }    

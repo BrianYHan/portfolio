@@ -1,0 +1,268 @@
+.page-products-build-your-own{
+
+}
+
+.page-products-build-your-own #edit-build-your-own-leftside,
+.page-products-build-your-own #edit-build-your-own-rightside{
+	border: none;
+	display: inline-block;
+	vertical-align: top;
+}
+
+.page-products-build-your-own #edit-build-your-own-product-shop-all-fxp-systems a{
+	color: #292628;
+	text-decoration: underline;
+	display: block;
+	margin: 20px 0px 20px 0px;	
+}
+
+.page-products-build-your-own #edit-build-your-own-leftside{
+	width: 67%;
+	padding: 0px;
+	margin: 0em 0px 0px 0px;
+  position: relative;
+}
+
+.page-products-build-your-own #edit-build-your-own-leftside #edit-build-your-own-title{
+  position: absolute;
+  margin: 0;
+}
+
+
+.page-products-build-your-own #edit-build-your-own-rightside{
+	width: 29%;
+	background-color: #ffffff;
+	margin: 0px 0px 1% 0px;
+	padding: 0px;
+}
+
+.page-products-build-your-own #edit-build-your-own-rightside .fieldset-wrapper{
+	margin: 0 0 1em .5em;	
+	padding: 10px;
+}
+
+.page-products-build-your-own #edit-build-your-own-rightside #edit-build-your-own-title{
+
+	margin: 0;
+}
+
+.page-products-build-your-own #edit-build-your-own-color-options{
+	text-transform: uppercase !important;
+}
+
+.page-products-build-your-own span#main-image{
+	display: inline-block;
+	vertical-align: top;
+}
+
+.page-products-build-your-own span#main-image img{
+	width: 630px;
+	height: 500px;
+}
+
+.page-products-build-your-own #edit-build-your-own-add-on-images{
+	border: none;
+	width: 45em;
+	margin: 0px;
+	padding: 0;
+}
+
+.page-products-build-your-own #edit-build-your-own-add-on-images .form-item{
+	display: inline-block;
+	vertical-align: top;
+
+}
+
+.page-products-build-your-own #edit-build-your-own-add-on-images .ajax-progress{ 
+	display: none !important; 
+}
+
+.page-products-build-your-own .product-thumbnail{
+  display: inline-block;
+  background-color: #fff;
+  width: 120px;
+  overflow: hidden;
+  margin-right: .5em;
+}
+
+.page-products-build-your-own .product-thumbnail.image-counter-5,
+.page-products-build-your-own .product-thumbnail.image-counter-10{
+  margin-right: 0px;
+}
+
+.page-products-build-your-own #edit-build-your-own-add-on-images input{
+	background-color: transparent;
+  padding: 0px;
+  border-radius: 0px;
+  margin: 0px 0px 0px 0px;
+  height: 80px;
+  /* border: 3px solid transparent; */
+  margin: auto;
+  display: block;
+}
+
+.page-products-build-your-own #build-your-own-price{
+	display: inline-block;
+  width: 100%;
+}
+
+.page-products-build-your-own #build-your-own-price label{
+	/*float: left;*/
+	display: inline-block;
+	vertical-align: top;
+	width: 31%;
+}
+
+
+.page-products-build-your-own #edit-build-your-own-item-price{
+	width: 80%;
+}
+
+.page-products-build-your-own #build-your-own-price input{
+	width: 50%;
+	/*float: left;*/
+	display: inline-block;
+	vertical-align: top;
+	border: none;
+	font-size: 1em;
+	padding: 0px;
+	font-weight: bold;
+	margin: -1px 0px 0px -3px;
+	color: #000;
+  background-color: transparent;
+  -webkit-text-fill-color:#000000;
+}
+
+.page-products-build-your-own .title{
+	font-family: 'Oswald', san-serif;
+  font-size: 30px;
+  text-transform: uppercase;
+  color: #01aef0;
+  display: none;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list {
+  border-bottom: 1px solid gray;
+  display: inline-block;
+  width: 100%;
+  padding-bottom: 2px;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info{
+  background: none;
+  margin: 0px;
+  padding: 0px;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li{
+  float: left;
+  margin: 0 -5px -5px -5px;
+  padding: 0 0 0 10px;
+  display: inline;
+  background: none;
+  list-style-type: none;
+  padding: 2px;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li ul li{
+  display: none;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.first.active,
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.active{
+  background-color: transparent;
+  display: block;
+  background-color: #ffffff;
+}
+
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.active a{
+  color: #000;
+  background-color: #ffffff;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.first.active ul li,
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.active ul li{
+  display: block;
+}
+
+
+.page-products-build-your-own #build-your-own-include-tab .item-list a{
+  background-color: #ffffff;
+  color: #333333;
+  border-bottom: 1px solid #ffffff;
+  text-decoration: none;
+  background: transparent url(tab-right-sep.png) no-repeat right -38px;
+  background: none;
+  -webkit-border-radius: 10px 10px 0px 0px;
+  -moz-border-radius: 10px 10px 0px 0px;
+  border-radius: 10px 10px 0px 0px;
+  border-top: 1px solid #aaaaaa;
+  border-right: 1px solid #aaaaaa;
+  border-left: 1px solid #aaaaaa;
+  padding: 5px 10px 0px 10px;
+  margin-right: 5px;
+  font-family: 'Open Sans',sans-serif;
+  text-transform: uppercase;
+  background-color: #b2b8bb;
+  color: #ffffff;
+  font-weight: normal;
+  letter-spacing: 1px;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .content{
+  display: none;
+ 
+}
+
+.page-products-build-your-own #build-your-own-include-tab .includes.content.active {
+  display: block;
+}
+
+.page-products-build-your-own #build-your-own-include-tab .active.content{
+  display: block;
+  padding: 10px 5px 2px;
+  margin-top: 2px;
+  padding-top: 15px;
+  font-size: 14px;
+}
+
+
+.page-products-build-your-own #build-your-own-include-tab .item-list .product-info li.details{
+  margin-right: 0px;
+}
+
+.page-products-build-your-own .product-name{
+  display: block;
+  color: #2b98ce;
+  padding: 15px 15px 0px 25px;
+  text-decoration: none;
+  font-family: 'Open Sans',sans-serif;
+  font-size: 30px;
+  text-transform: uppercase;
+}
+
+.page-products-build-your-own .add-on-product-info{
+  background-color: #fff;
+  display: inline-block;
+  vertical-align: top;
+  clear: left;
+  margin-bottom: 0em;
+  padding: 1%;
+  width: 90%;
+}
+
+.page-products-build-your-own .add-on-product-info.PINK,
+.page-products-build-your-own .add-on-product-info.PURPLE{
+  display: none;
+}
+
+#build-your-own-price-catcher{
+  display: none !important;
+}
+
+.page-products-build-your-own #edit-build-your-own-product-shop-all-fxp-systems{
+  position: relative;
+  margin-top: -2em;
+  z-index: 400;
+}

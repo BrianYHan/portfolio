@@ -1,0 +1,4 @@
+name = Form Themer
+description = Allows admins to theme forms easily
+package = Forms
+core = 7.x

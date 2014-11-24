@@ -1,0 +1,1046 @@
+<?php
+/** 
+ *  Implements hook_menu
+ */
+function build_your_own_menu(){
+  $items['admin/commerce/build-your-own'] = array(
+    'title' => 'Build Your Own',
+    'description' => 'Configure settings for the Build Your Own Packaging module',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('build_your_own_admin_form'),
+    'access arguments' => array('administer all products'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['products/build-your-own'] = array(
+    'title' => 'Build Your Own Kit!',
+    'description' => 'Form where users can create their own pack of items',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('build_your_own_create_pack_form'),
+    'access arguments' => array('create all products'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['products/build-your-own/%'] = array(
+    'title' => 'Build Your Own Kit!',
+    'description' => 'Form where users can create their own pack of items',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('build_your_own_create_pack_form',2),
+    'access arguments' => array('create all products'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+/**
+ * Implement relationship entity management permissions
+ * Access permissions: administer everybodysafe profile, view everybody safe profile
+ */
+function build_your_own_permission(){
+  return array(
+    'administer all products' => array(
+      'title' => t('Administer Build Your Own Settings'),
+    ),
+    'create all products' => array(
+      'title' => t('Create your own pack')
+    ),
+  );
+}
+
+
+/**
+ * Implement hook_admin_form()
+ * URI: admin/commerce/build-your-own
+ */
+function build_your_own_admin_form(){
+  $allProducts = array();
+  $allProductTypes = array();
+
+  $productQuery = new EntityFieldQuery();
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    ->execute();
+
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    $allProducts[] = commerce_product_load($commerce_product->product_id);
+    if(!in_array($commerce_product->type, $allProductTypes)){
+      $allProductTypes[$commerce_product->type] = $commerce_product->type;
+      // $allProductTypesAsClass .= ', ' . $commerce_product->type;
+    }
+
+  }
+
+  $form['build_your_own_product_type'] = array(
+    '#type' => 'select',
+    '#options' => $allProductTypes,
+    // '#attributes' => array(
+    //   'class' => array(
+    //     $allProductTypesAsClass,
+    //   ),
+    // ),
+    '#title' => t('Which Product Type would you like to use for the "Build Your Own" portion of your store?'),
+    '#default_value' => variable_get('build_your_own_product_type'),
+  );
+
+
+  // Query for all products that have been selected 
+  $productQueryWithType = new EntityFieldQuery();
+  $productQueryWithTypeResult = $productQueryWithType->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('type', variable_get('build_your_own_product_type'))
+    ->execute();
+  
+  foreach($productQueryWithTypeResult['commerce_product'] as $productWithTypeID => $productWithType){
+    $productWithTypeOptions[$productWithType->product_id] = commerce_product_load($productWithType->product_id)->title;
+  }
+
+  $form['build_your_own_product_default_product'] = array(
+    '#type' => 'select',
+    '#title' => t('Which product would you like to use as the default product?'),
+    '#options' => $productWithTypeOptions,
+    '#default_value' => variable_get('build_your_own_product_default_product',''),
+  );
+
+  // Query for all image types
+  $allImageStyles = image_styles();
+  $customImageStyles = array();
+  foreach($allImageStyles as $imageStyleName=> $imageStyle){
+    if(isset($imageStyle['isid'])){
+      $customImageStyles[$imageStyle['name']] = $imageStyle['name'];  
+    }
+  }
+
+  $form['build_your_own_product_main_image_style'] = array(
+    '#type' => 'select',
+    '#options' => $customImageStyles,
+    '#multiple' => FALSE,
+    '#default_value' => variable_get('build_your_own_product_main_image_style'),
+    '#title' => t('What Image style would you like to use for your main product image?'),
+  );
+
+  $form['build_your_own_product_add_on_image_style'] = array(
+    '#type' => 'select',
+    '#options' => $customImageStyles,
+    '#multiple' => FALSE,
+    '#default_value' => variable_get('build_your_own_product_add_on_image_style'),
+    '#title' => t('What Image style would you like to use for your add-on product images?'),
+  );
+
+  $form['build_your_own_product_text_for_includes'] = array(
+    '#type' => 'textarea',
+    '#title' => t('What would you like to use as your text for the "Includes" tab?'),
+    '#default_value' => variable_get('build_your_own_product_text_for_includes', ''),
+  );
+
+  $form['build_your_own_product_text_for_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('What would you like to use as your text for the "Description" tab?'),
+    '#default_value' => variable_get('build_your_own_product_text_for_description', ''),
+  );
+
+  // Query for all products not in a bundle
+  $nonComboProductQuery = new EntityFieldQuery();
+  $nonComboProductQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    ->propertyCondition('type', variable_get('build_your_own_product_type'))
+    ->fieldCondition('field_type_of_byo_product', 'value', 0, '<>')
+    ->execute();
+  foreach($nonComboProductQueryResult['commerce_product'] as $addOnKey => $addOn){
+    $nonComboProducts[$addOnKey] = commerce_product_load($addOnKey)->title;
+  }
+
+
+  $form['build_your_own_product_sub_items'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('What add-on products would you like to be featured on the Build Your Own Page?'),
+    '#default_value' => variable_get('build_your_own_product_sub_items'),
+    '#options' => $nonComboProducts,
+  );
+
+  return system_settings_form($form);
+}
+
+/** 
+ * Implement hook_form()
+ * @param: $products
+ * URI: products/build-your-own
+ */
+function build_your_own_create_pack_form($form, &$form_state){
+  drupal_add_library('system', 'ui');
+
+
+  // If $form_state['step'] is not set, we set it to 1
+  if(isset($form_state['step'])){
+    $form_state['step'] = $form_state['step'];
+  }else{
+    $form_state['step'] = 1;
+  }
+  // dsm($form_state['step']);
+
+  // Add a wrapper div that will be used by the Form API to update the form using AJAX
+  // $form[$form_state['step']]['#prefix'] = '<div id="ajax_form_multistep_form">';
+  // $form[$form_state['step']]['#suffix'] = '</div>';
+
+  // drupal_add_library('system', 'ui.dialog');
+  $allProducts = array();
+  $allCombos = array();
+  $allDVDS = array();
+  // $allDVDS[] = t('Select One');
+  $allDVDinfo = array();
+  $allAddOns = array();
+  $colorOptions = array();
+  $form = array();  
+
+  $productQuery = new EntityFieldQuery();
+
+  // Product type set in admin page
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    ->propertyCondition('type', $product_type_to_use_as_build_your_own)
+    ->execute();
+
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    $allProducts[$commerce_product->product_id] = commerce_product_load($commerce_product->product_id);
+  }
+  
+  $form[$form_state['step']]['build_your_own_product_shop_all_fxp_systems'] = array(
+    '#type' => 'item',
+    '#markup' => l(t('Shop all FXP Systems'), 'products'),
+  );
+
+  $form[$form_state['step']]['build_your_own_step'] = array(
+    '#type' => 'item',
+    '#markup' => '<div id="form-step" class="' . $form_state['step'] . '" style="display: none"></div>',
+  );
+ 
+
+  $form[$form_state['step']]['build_your_own_leftside'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+  );
+
+  // $form[$form_state['step']]['build_your_own_leftside']['build_your_own_title'] = array(
+  //   '#type' => 'item',
+  //   '#markup' => '<h1>Build Your Own Kit</h1>',
+  // );
+
+  // Get image style from admin screen & initialize all values
+  $mainImageStyle = variable_get('build_your_own_product_main_image_style');
+
+  // Default Product
+  $defaultProduct = commerce_product_load(variable_get('build_your_own_product_default_product'));
+  // $defaultProduct = current($allProducts);
+  $defaultProductID = $defaultProduct->product_id;
+  $defaultProductWrapper = entity_metadata_wrapper('commerce_product', $defaultProductID);
+  
+  $defaultProductDetails = $defaultProductWrapper->field_details->value();
+  // $defaultDescription = $defaultProductWrapper->field_description->value->value();
+  // $defaultIncludes = $defaultProductWrapper->field_contents->value();
+  $defaultIncludes = variable_get('build_your_own_product_text_for_includes');
+  $defaultDescription = variable_get('build_your_own_product_text_for_description');
+
+  $productInfo[] = array(
+    'data' => l('Includes', '#'),
+    'class' => array(
+      'includes-tab',
+      'active',
+    ),
+    'id' => 'includes'
+  );
+
+  $productInfo[] = array(
+    'data' => l('Description', '#'),
+    'class' => array(
+      'description-tab',
+    ),
+    'id' => 'description'
+  );
+
+  // $productInfo[] = array(
+  //   'data' => l('Details', 'javascript:'),
+  //   'class' => array(
+  //     'details-tab',
+  //   ),
+  //   'id' => 'details',
+  // );
+
+
+  $variables = array(
+    'title' => '',
+    'type' => 'ul',
+    'attributes' => array(
+      'class' => 'product-info',
+    ),
+    'items' => $productInfo,
+  );
+
+  $includesTabs = theme_item_list($variables);
+
+
+  
+  $defaultFID = $defaultProduct->field_image['und'][0]['fid'];
+  $defaultTitle = $defaultProduct->field_image['und'][0]['title'];
+  $defaultURI = $defaultProduct->field_image['und'][0]['uri'];
+  $defaultProductPrice = $defaultProduct->commerce_price['und'][0]['amount'] * 0.01;
+  $defaultImage = theme('image_style', array('path' => $defaultURI, 'alt' => t($defaultTitle), 'style_name' => $mainImageStyle));
+
+
+  $form[$form_state['step']]['build_your_own_leftside']['special_offer_banner'] = array(
+    '#markup' => '<div class="special-offer-banner"></div>',
+  );
+  
+  $form[$form_state['step']]['build_your_own_leftside']['build_your_own_main_image'] = array(
+    '#markup' => '<span id="main-image">' . $defaultImage . '</span>',
+    '#name' => 'main-image-trigger',
+    '#executes_submit_callback' => FALSE,
+  );
+
+  $addOnProducts = variable_get('build_your_own_product_sub_items');
+  $addOnProductsImageStyle = variable_get('build_your_own_product_add_on_image_style');
+
+
+  $allAddOnProductsForDisplay = array();
+
+  $productOptionsClass = 'product_options: ';
+
+
+  foreach($allProducts as $productID => $productInfo){
+
+    $productWrapper = entity_metadata_wrapper('commerce_product', $productInfo);
+
+
+    // Load all add on images into an array 
+    if(in_array($productWrapper->product_id->value(), $addOnProducts) && isset($productInfo->field_image['und'][0]['fid'])){
+      $addOnFID = $productInfo->field_image['und'][0]['fid'];
+      $addOnTitle = $productInfo->field_image['und'][0]['title'];
+      $addOnURI = file_load($addOnFID)->uri;
+    
+      // // $second = $productWrapper->field_image['und'][0]['uri'];
+    
+      $addOnImage = theme('image_style', array('path' => $addOnURI, 'alt' => t($addOnTitle), 'style_name' => $addOnProductsImageStyle));
+      $allAddOnProductsForDisplay[$productWrapper->product_id->value()] = $addOnURI;
+    }
+    
+    $productOptionsClass .= $productWrapper->product_id->value() . ', ';
+
+    // Load all combos into an array
+    if($productWrapper->field_type_of_byo_product->value() == 0){
+      $allCombos[] = $productInfo;
+    }
+    // Load all dvds into array
+    else if($productWrapper->field_type_of_byo_product->value() == 1){
+      $allDVDS[$productWrapper->product_id->value()] = $productWrapper->title->value();
+      
+      $allDVDinfo[] = $productInfo;
+
+    }
+    // Load rest into array
+    else{
+      $allAddOns[] = $productInfo;
+          
+
+    }
+    // Load Color Options into Array
+    if(!in_array($productWrapper->field_hoop_color->value(), $colorOptions) && $productWrapper->field_hoop_color->value() != ''){
+      $colorOptions[$productWrapper->field_hoop_color->value()] = strtoupper($productWrapper->field_hoop_color->value());
+      // $colorOptionsClass .= $productWrapper->field_hoop_color->value() . ', ';
+    }
+  }// End of foreach
+  
+  // Set up default dvd options  
+  $dvd_array_keys = array_keys($allDVDS);
+  $default_option_one = $dvd_array_keys[0];
+  $default_option_two = $dvd_array_keys[1];
+
+  $form[$form_state['step']]['build_your_own_leftside']['build_your_own_add_on_images'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+  );
+
+  $imageCounter = 0;
+  foreach($allAddOnProductsForDisplay as $addOnImageKey => $addOnImages){
+    $imageCounter++;
+    $form[$form_state['step']]['build_your_own_leftside']['build_your_own_add_on_images'][] = array(
+      '#type' => 'image_button',
+      '#prefix' => '<span class="' . $addOnImageKey . ' product-thumbnail ' . 'image-counter-' . $imageCounter . '">',
+      '#suffix' => '</span>',
+      '#executes_submit_callback' => FALSE,
+      '#limit_validation_errors' => TRUE,
+      '#attributes' => array(
+        'class' => array(
+          'add-on-images',
+        ),
+      ),
+      '#src' => $addOnImages,
+      '#ajax' => array(
+        'callback' => 'build_your_own_form_ajax_callback_images',
+        'wrapper' => 'main-image',
+        'method' => 'replace',
+        'effect' => 'fade',
+      ),
+    );
+  }
+  // Array merge for all addons + dvd info
+  $allAddOns = array_merge($allDVDinfo, $allAddOns);
+  $allAddOnsOptions = array();
+  $descrips = '';
+  $allAddOnsOptions[0] = t('- Select -');
+  foreach($allAddOns as $addOn){
+    $descrips .= '<div class="add-on-product-info ' . $addOn->title . '"><div class="' . $addOn->title . ' product-name">' . $addOn->title . '</div><div class="product-descriptions">' . $addOn->field_description['und'][0]['value'] . '</div></div>';
+    // $allAddOnsOptionsDescriptions[$addOn->title] = $addOn->field_description['und'][0]['value'];
+    $allAddOnsOptions[$addOn->product_id] = $addOn->title;
+  }
+ 
+
+  $cardioBlastDescription = '';
+
+  $form[$form_state['step']]['build_your_own_leftside']['build_your_own_add_on_product_descriptions'] = array(
+    '#type' => 'item',
+    '#markup' => '<div id="byo-product-descriptions">' . $descrips . '</div>',
+  );
+
+
+  /**
+   * Right Column
+   */
+  $form[$form_state['step']]['build_your_own_rightside'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_title'] = array(
+    '#type' => 'item',
+    '#markup' => '<h1 id="build-your-own-page-title">' . t("Build Your Own Kit") . '</h1>',
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_color_options'] = array(
+    '#type' => 'select',
+    '#title' => t('Select your Hula Hoop® Color'),
+    '#options' => $colorOptions,
+    '#default_value' => variable_get('build_your_own_color_options', 0),
+    '#required' => TRUE,
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_options_one'] = array(
+    '#type' => 'select',
+    '#title' => t('Select your First DVD'),
+    '#prefix' => '<div id="build-your-own-one">',
+    '#suffix' => '</div>',
+    '#options' => $allDVDS,
+    '#required' => TRUE,
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_options_two'] = array(
+    '#type' => 'select',
+    '#prefix' => '<div id="build-your-own-two">',
+    '#suffix' => '</div>',
+    '#title' => t('Select your Second DVD'),
+    '#options' => $allDVDS,
+    '#required' => TRUE,
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_item_price'] = array(
+    '#prefix' => '<div id="build-your-own-price">',
+    '#suffix' => '</div>',
+    '#title' => t('Item Price: $'),
+    '#value' => $defaultProductPrice,
+    '#type' => 'textfield',
+    '#attributes' => array('disabled' => 'disabled'),
+    '#disabled' => TRUE,
+    '#name' => 'trigger_price_change',
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_all_dvds_hidden'] = array(
+    '#type' => 'hidden',
+    '#title' => t("Hidden All DVD array"),
+    '#value' => $allDVDS,
+  );
+
+  $i = 0;
+  if($form_state['rebuild'] == TRUE){
+    for($i = 0; $i < $form_state['storage']['rebuild_count']; $i++){
+      $form[$form_state['step']]['build_your_own_rightside']['build_your_own_add_on'][$i] = array(
+        '#type' => 'select',
+        '#title' => t('Choose your add ons!:'),
+        '#options' => $allAddOnsOptions,
+        '#attributes' => array(
+          'class' => array(
+            'rebuilder',
+          ),
+        ),
+        '#ajax' => array(
+          'callback' => 'build_your_own_form_ajax_callback_price',
+          'wrapper' => 'build-your-own-price',
+          // 'event' => 'change_price',
+          'method' => 'replace',
+          'effect' => 'fade',
+          'trigger_as' => array(
+            'name' => 'trigger_price_change',
+          ),
+        ),
+      );
+    }  
+  }
+
+  // Add another Item to my kit button
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_add_on_addition'] = array(
+    '#type' => 'button',
+    '#name' => 'build_your_own_add_button',
+    '#value' => t('Add another item to my kit'),
+    '#submit' => array('build_your_own_add_on_addition_callback'),
+    '#executes_submit_callback' => TRUE,
+  );
+
+
+
+  $form[$form_state['step']]['build_your_own_rightside']['submit_this_form'] = array(
+    '#type' => 'submit',
+    '#submit' => array('build_your_own_create_pack_form_submit'),
+    '#value' => t('Add to Cart'),
+  );
+
+  $includesContent = '<div class="includes content active" id="includes">' . $defaultIncludes . '</div>';
+  $descriptionContent = '<div class="description content" id="description">' . $defaultDescription . '</div>';
+  // $detailsContent = '<div class="details content" id="details">' . $defaultProductDetails . '</div>';
+
+  $form[$form_state['step']]['build_your_own_rightside']['includes_tab_content'] = array(
+    '#prefix' => '<div id="build-your-own-include-tab">',
+    '#suffix' => '</div>',
+    '#name' => 'trigger_info_change',
+    '#type' => 'item',
+    '#markup' => $includesTabs . $includesContent . $descriptionContent,
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['trigger_the_info'] = array(
+    '#prefix' => '<div style="display: none" id="build-your-own-trigger-the-info">',
+    '#suffix' => '</div>',
+    '#type' => 'button',
+    '#limit_validation_errors' => TRUE,
+    '#executes_submit_callback' => FALSE,
+    '#ajax' => array(
+      'callback' => 'build_your_own_form_ajax_callback_one',
+      'wrapper' => 'build-your-own-include-tab',
+      'method' => 'replace',
+      'effect' => 'fade',
+      'event' => 'trigger-the-info',
+      'limit_validation_errors' => TRUE,
+      'trigger_as' => array(
+        'name' => 'trigger_info_change',
+      ),
+      // 'event' => 'get-product-info',
+    ),
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['trigger_the_price'] = array(
+    '#prefix' => '<div style="display: none" id="build-your-own-trigger-the-price">',
+    '#suffix' => '</div>',
+    '#type' => 'button',
+    '#limit_validation_errors' => TRUE,
+    '#executes_submit_callback' => FALSE,
+    '#ajax' => array(
+      'callback' => 'build_your_own_form_ajax_callback_prices',
+      'wrapper' => 'build-your-own-price-catcher',
+      'event' => 'trigger-the-prices',
+      'method' => 'replace',
+      'effect' => 'fade',
+
+    ),
+  );
+
+  $form[$form_state['step']]['build_your_own_rightside']['find_the_price'] = array(
+    '#prefix' => '<div style="display:none" id="build-your-own-price-catcher">',
+    '#suffix' => '</div>',
+    '#type' => 'textfield',
+    '#limit_validation_errors' => TRUE,
+  );
+  return $form;
+}
+
+
+/**
+ * AJAX Callback for the 2nd DVD Select 
+ * Removes whatever DVD was selected in the 1st DVD Select
+ * Not used anymore
+ */
+function build_your_own_form_ajax_callback_two($form, $form_state){
+  // First dvd selection 
+  $selectedDVD = $form_state['triggering_element']['#value'];
+
+  // If the 2nd dvd box has the element that was chosen in the first dvd box,
+  // Unset the variable
+  if(isset($form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_options_two']['#options'][$selectedDVD])){
+    unset($form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_options_two']['#options'][$selectedDVD]);
+  }
+  return $form[$form_state['step']]['build_your_own_rightside']['build_your_own_dvd_options_two'];
+}
+
+/**
+ * AJAX Callback for the 1st DVD Select 
+ * Returns product Info
+ * Not used anymore
+ */
+function build_your_own_form_ajax_callback_one($form, $form_state){
+
+  GLOBAL $user;
+  $uid = $user->uid;
+  $color = $form_state['input']['build_your_own_color_options'];
+  $all_dvds = $form_state['input']['build_your_own_dvd_all_dvds_hidden'];
+  if(isset($form_state['input']['build_your_own_dvd_options_one']) && $form_state['input']['build_your_own_dvd_options_one'] != ''){
+    $dvd_one = $form_state['input']['build_your_own_dvd_options_one'];
+    // dsm($dvd_one);
+  }else{
+    reset($all_dvds);
+    $dvd_one = key($all_dvds);
+  }
+
+  $dvd_two = $form_state['input']['build_your_own_dvd_options_two'];
+  // dsm($dvd_two);
+
+  // // BYO Product Types and their key
+
+  // Query all products
+  $productQuery = new EntityFieldQuery();
+
+  // Product type set in admin page
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    // ->fieldCondition('field_hoop_color', 'value',$byoProductTypes[$color])
+    ->propertyCondition('type', $product_type_to_use_as_build_your_own)
+    ->execute();
+
+  // Load all products
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    
+    $allProducts[$commerce_product->product_id] = commerce_product_load($commerce_product->product_id);
+  }
+
+  //Find the combo
+  $packagedItems = array();
+  foreach($allProducts as $productKey => $product){
+    $productWrapper = entity_metadata_wrapper('commerce_product', $product);
+    // Load the combo
+    foreach($productWrapper->field_packaged_items->value() as $packaged_itemKey => $packagedItem){
+      $packagedItems[$product->product_id][] = $packagedItem->product_id;  
+    }
+
+    if($productWrapper->field_hoop_color->value() == $color && $productWrapper->field_type_of_byo_product->value() == 0){
+      $eligibleProducts[$product->product_id] = $product;
+
+    }
+    $productSKU = $productWrapper->sku->value();
+  }
+
+
+  // Find the combo the user chose
+  $comboItem = '';
+  foreach($eligibleProducts as $eligibleProductKey => $eligibleProductInfo){
+    if(in_array($dvd_one, $packagedItems[$eligibleProductKey]) && in_array($dvd_two, $packagedItems[$eligibleProductKey])){
+      $comboItem = $eligibleProductKey;
+    }
+  }
+
+  $comboItem = commerce_product_load($comboItem);
+  $comboItemWrapper = entity_metadata_wrapper('commerce_product', $comboItem);
+
+
+  $productDescription = $comboItemWrapper->field_description->value()['value'];
+  $productDetails = $comboItemWrapper->field_details->value();
+  // $productIncludes = $comboItemWrapper->field_contents->value();
+  $productIncludes = variable_get('build_your_own_product_text_for_includes');
+
+  $productInfo[] = array(
+    'data' => l('Includes', '#'),
+    'class' => array(
+      'includes-tab',
+      'active',
+    ),
+    'id' => 'includes'
+  );
+
+  $productInfo[] = array(
+    'data' => l('Description', '#'),
+    'class' => array(
+      'description-tab',
+    ),
+    'id' => 'description'
+  );
+
+  $variables = array(
+    'title' => '',
+    'type' => 'ul',
+    'attributes' => array(
+      'class' => 'product-info',
+    ),
+    'items' => $productInfo,
+  );
+
+  $includesTabs = theme_item_list($variables);
+
+  $includesContent = '<div class="includes content active" id="includes">' . $productIncludes . '</div>';
+  $descriptionContent = '<div class="description content" id="description">' . $productDescription . '</div>';
+  // $detailsContent = '<div class="details content" id="details">' . $productDetails . '</div>';
+
+  $form[$form_state['step']]['build_your_own_rightside']['includes_tab_content'] = array(
+    '#prefix' => '<div id="build-your-own-include-tab">',
+    '#suffix' => '</div>',
+    '#name' => 'trigger_info_change',
+    '#type' => 'item',
+
+    '#markup' => $includesTabs . $includesContent . $descriptionContent,
+  );
+
+  return $form[$form_state['step']]['build_your_own_rightside']['includes_tab_content'];
+}
+
+
+/**
+ * AJAX Callback for the price
+ */
+function build_your_own_form_ajax_callback_price($form, $form_state){
+  // dsm($form_state);
+  $color = $form_state['values']['build_your_own_color_options'];
+  $all_dvds = $form_state['values']['build_your_own_dvd_all_dvds_hidden'];
+
+  $dvd_one = $form_state['values']['build_your_own_dvd_options_one'];
+  
+  $dvd_two = $form_state['values']['build_your_own_dvd_options_two'];
+   // // BYO Product Types and their key
+
+
+  // Query all products
+  $productQuery = new EntityFieldQuery();
+
+  // Product type set in admin page
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    // ->fieldCondition('field_hoop_color', 'value',$byoProductTypes[$color])
+    ->propertyCondition('type', $product_type_to_use_as_build_your_own)
+    ->execute();
+
+  // Load all products
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    
+    $allProducts[$commerce_product->product_id] = commerce_product_load($commerce_product->product_id);
+  }
+  $defaultProduct = current($allProducts);
+  $defaultProductPrice = $defaultProduct->commerce_price['und'][0]['amount'];
+
+  //Find the combo
+  $packagedItems = array();
+  foreach($allProducts as $productKey => $product){
+    $productWrapper = entity_metadata_wrapper('commerce_product', $product);
+    
+    // Load the combo
+    foreach($productWrapper->field_packaged_items->value() as $packaged_itemKey => $packagedItem){
+      $packagedItems[$product->product_id][] = $packagedItem->product_id;  
+    }
+
+    if($productWrapper->field_hoop_color->value() == $color && $productWrapper->field_type_of_byo_product->value() == 0){
+      $eligibleProducts[$product->product_id] = $product;
+
+    }
+    $productSKU = $productWrapper->sku->value();
+  }
+
+
+  // Find the combo the user chose
+  $comboItem = '';
+  foreach($eligibleProducts as $eligibleProductKey => $eligibleProductInfo){
+    if(in_array($dvd_one, $packagedItems[$eligibleProductKey]) && in_array($dvd_two, $packagedItems[$eligibleProductKey])){
+      $comboItem = $eligibleProductKey;
+    }
+  }
+
+
+  $addOns = array();
+  foreach($form_state['input'] as $form_state_key => $form_state_values){
+    if(is_int($form_state_key)){
+      $addOns[] = $form_state_values;
+      // Add all add ons to cart by id
+  //    commerce_cart_product_add_by_id($form_state_values, 1, $combine = TRUE, $uid);
+    }
+  }
+  // $addOns[] = $comboItem;
+  $allProducts = array();
+  foreach($addOns as $addOn){
+    $allProducts[] = commerce_product_load($addOn);
+  }
+  
+  
+  $cost = array();
+  foreach($allProducts as $productID => $product){
+    $cost[] = $product->commerce_price['und'][0]['amount'];
+  }
+  // Default price for all combos
+  $total = $defaultProductPrice;
+  foreach($cost as $prodID => $price){
+    $total+=$price;
+  }
+
+  // Make the total into a form you can use
+  $total = $total * 0.01;
+  $default_amount = $total;
+  $form[$form_state['step']]['build_your_own_rightside']['build_your_own_item_price'] =  array(
+    '#value' => $total,
+    '#prefix' => '<div id="build-your-own-price">',
+    '#suffix' => '</div>',
+    '#title' => t('Item Price: $'),
+    '#type' => 'textfield',
+    '#disabled' => TRUE,
+    '#attributes' => array('disabled' => 'disabled'),
+    '#name' => 'trigger_price_change',
+  );
+  return $form[$form_state['step']]['build_your_own_rightside']['build_your_own_item_price'];
+}
+
+
+/**
+ * AJAX Callback for the price
+ */
+function build_your_own_form_ajax_callback_prices($form, $form_state){
+  // dsm($form_state);
+  $color = $form_state['values']['build_your_own_color_options'];
+  $all_dvds = $form_state['values']['build_your_own_dvd_all_dvds_hidden'];
+
+  $dvd_one = $form_state['values']['build_your_own_dvd_options_one'];
+  
+  $dvd_two = $form_state['values']['build_your_own_dvd_options_two'];
+   // // BYO Product Types and their key
+
+
+  // Query all products
+  $productQuery = new EntityFieldQuery();
+
+  // Product type set in admin page
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    // ->fieldCondition('field_hoop_color', 'value',$byoProductTypes[$color])
+    ->propertyCondition('type', $product_type_to_use_as_build_your_own)
+    ->execute();
+
+  // Load all products
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    
+    $allProducts[$commerce_product->product_id] = commerce_product_load($commerce_product->product_id);
+  }
+  $defaultProduct = current($allProducts);
+  $defaultProductPrice = $defaultProduct->commerce_price['und'][0]['amount'];
+
+  //Find the combo
+  $packagedItems = array();
+  foreach($allProducts as $productKey => $product){
+    $productWrapper = entity_metadata_wrapper('commerce_product', $product);
+    
+    // Load the combo
+    foreach($productWrapper->field_packaged_items->value() as $packaged_itemKey => $packagedItem){
+      $packagedItems[$product->product_id][] = $packagedItem->product_id;  
+    }
+
+    if($productWrapper->field_hoop_color->value() == $color && $productWrapper->field_type_of_byo_product->value() == 0){
+      $eligibleProducts[$product->product_id] = $product;
+
+    }
+    $productSKU = $productWrapper->sku->value();
+  }
+
+
+  // Find the combo the user chose
+  $comboItem = '';
+  foreach($eligibleProducts as $eligibleProductKey => $eligibleProductInfo){
+    if(in_array($dvd_one, $packagedItems[$eligibleProductKey]) && in_array($dvd_two, $packagedItems[$eligibleProductKey])){
+      $comboItem = $eligibleProductKey;
+    }
+  }
+
+
+  $addOns = array();
+
+  // Load all add ons into an array
+  foreach($form_state['input'] as $form_state_key => $form_state_values){
+    if(is_int($form_state_key)){
+      $addOns[] = $form_state_values;
+    }
+  }
+  // $addOns[] = $comboItem;
+  $allProducts = array();
+  foreach($addOns as $addOn){
+    $allProducts[] = commerce_product_load($addOn);
+  }
+  
+  
+  $cost = array();
+  foreach($allProducts as $productID => $product){
+    $cost[] = $product->commerce_price['und'][0]['amount'];
+  }
+  // Default price for all combos
+  $total = $defaultProductPrice;
+  foreach($cost as $prodID => $price){
+    $total+=$price;
+  }
+
+  // Make the total into a form you can use
+  $total = $total * 0.01;
+  $default_amount = $total;
+  
+  $form[$form_state['step']]['build_your_own_rightside']['find_the_price'] = array(
+    '#prefix' => '<div style="display:none" id="build-your-own-price-catcher">',
+    '#suffix' => '</div>',
+    '#type' => 'textfield',
+    '#attributes' => array('disabled' => 'disabled'),
+    '#value' => $total,
+    '#limit_validation_errors' => TRUE,
+  );
+  return $form[$form_state['step']]['build_your_own_rightside']['find_the_price'];
+}
+
+
+
+/** 
+ * Incrementer for the rebuild option to add more additions
+ * Ajax Callback
+ */
+function build_your_own_add_on_addition_callback($form, &$form_state){
+  $form_state['step']++;
+  $form_state['storage']['rebuild_count']++;
+  $form_state['rebuild'] = TRUE;
+
+}
+
+/**
+ * Ajax Callback for the add On images
+ */
+function build_your_own_form_ajax_callback_images($form, &$form_state){
+  $main_image = $form_state['build_your_own_leftside']['build_your_own_main_image'];
+  $mainImageStyle = variable_get('build_your_own_product_main_image_style');
+  $clicked_image = $form_state['clicked_button'];
+  $clicked_image_uri = $form_state['clicked_button']['#src'];
+  $defaultImage = theme('image_style', array('path' => $clicked_image_uri, 'alt' => t('Build Your Own Kit Image'), 'style_name' => $mainImageStyle));
+  $form[$form_state['step']]['build_your_own_leftside']['build_your_own_main_image'] = array(
+    '#markup' => '<span id="main-image">' . $defaultImage . '</span>',
+    '#executes_submit_callback' => FALSE,
+  );
+  
+  return $form[$form_state['step']]['build_your_own_leftside']['build_your_own_main_image'];
+}
+
+/** 
+ * Implement hook_form_submit()
+ * @param: $products
+ * URI: products/build-your-own
+ */
+function build_your_own_create_pack_form_submit($form, &$form_state){
+  // dsm($form_state);
+  GLOBAL $user;
+  $uid = $user->uid;
+  $color = $form_state['values']['build_your_own_color_options'];
+  $all_dvds = $form_state['values']['build_your_own_dvd_all_dvds_hidden'];
+
+  $dvd_one = $form_state['values']['build_your_own_dvd_options_one'];
+  
+  $dvd_two = $form_state['values']['build_your_own_dvd_options_two'];
+
+
+  // // BYO Product Types and their key
+
+  // Query all products
+  $productQuery = new EntityFieldQuery();
+
+  // Product type set in admin page
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productQueryResult = $productQuery->entityCondition('entity_type', 'commerce_product')
+    ->propertyCondition('status', 1)
+    // ->fieldCondition('field_hoop_color', 'value',$byoProductTypes[$color])
+    ->propertyCondition('type', $product_type_to_use_as_build_your_own)
+    ->execute();
+
+  // Load all products
+  foreach($productQueryResult['commerce_product'] as $commerce_product_key => $commerce_product){
+    
+    $allProducts[$commerce_product->product_id] = commerce_product_load($commerce_product->product_id);
+  }
+
+  //Find the combo
+  $packagedItems = array();
+  foreach($allProducts as $productKey => $product){
+    $productWrapper = entity_metadata_wrapper('commerce_product', $product);
+
+  
+    // Load the combo
+    foreach($productWrapper->field_packaged_items->value() as $packaged_itemKey => $packagedItem){
+      $packagedItems[$product->product_id][] = $packagedItem->product_id;  
+    }
+
+    if($productWrapper->field_hoop_color->value() == $color && $productWrapper->field_type_of_byo_product->value() == 0){
+      $eligibleProducts[$product->product_id] = $product;
+
+    }
+    $productSKU = $productWrapper->sku->value();
+  }
+
+
+  // Find the combo the user chose
+  $comboItem = '';
+  foreach($eligibleProducts as $eligibleProductKey => $eligibleProductInfo){
+    if(in_array($dvd_one, $packagedItems[$eligibleProductKey]) && in_array($dvd_two, $packagedItems[$eligibleProductKey])){
+      $comboItem = $eligibleProductKey;
+    }
+  }
+ 
+  // $comboItem = match_products(&$form_state);
+  // Add Combo to cart
+  commerce_cart_product_add_by_id($comboItem, $quantity = 1, $combine = TRUE, $uid);
+
+  // Find all Add ons
+  foreach($form_state['input'] as $form_state_key => $form_state_values){
+    if(is_int($form_state_key)){
+      // Add all add ons to cart by id
+      $addOns[] = $form_state_values;
+      commerce_cart_product_add_by_id($form_state_values, 1, $combine = TRUE, $uid);
+    }
+  }
+// dsm($addOns);
+
+    // $addOns = array();
+  // foreach($form_state['values'] as $form_state_key => $form_state_values){
+  //   if(is_int($form_state_key)){
+  //     $addOns[] = $form_state_values;
+  //     // Add all add ons to cart by id
+  // //    commerce_cart_product_add_by_id($form_state_values, 1, $combine = TRUE, $uid);
+  //   }
+  // }
+  // $addOns[] = $comboItem;
+
+// dsm($packagedItems);
+
+  drupal_goto('cart');
+
+}
+
+/**
+ * Implements hook_commerce_cart_product_remove
+ */
+function build_your_own_commerce_cart_product_remove($order, $product, $quantity, $line_item){
+  $product_type_to_use_as_build_your_own = variable_get('build_your_own_product_type');
+  $productWrapper = entity_metadata_wrapper('commerce_product', $product);
+  $allProductsInCart = array();
+
+  // If Product Type and Build Your Own Type 
+  if($product->type == $product_type_to_use_as_build_your_own && $product->field_type_of_byo_product['und'][0]['value'] == 0){
+    foreach($order->commerce_line_items['und'] as $item_key => $line_item_id){
+      $allProductsInCart[] = commerce_line_item_load($line_item_id);
+
+    }
+  }
+
+  // If product type is the same as build your own
+  foreach($allProductsInCart as $productKey => $productInfo){
+    $loadedProduct = commerce_product_load($productInfo->commerce_product['und'][0]['product_id']);
+    if($loadedProduct->type == $product_type_to_use_as_build_your_own){
+      commerce_cart_order_product_line_item_delete($order, $productInfo->line_item_id);
+    }
+  }
+  commerce_order_save($order);
+}

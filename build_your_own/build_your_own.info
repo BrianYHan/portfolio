@@ -1,0 +1,8 @@
+name = Build Your Own
+description = Allows users to build their own packs of items in DC
+package = Commerce
+dependencies[] = commerce
+dependencies[] = quicktabs
+core = 7.x
+stylesheets[all][]= build_your_own.css
+scripts[]= build_your_own.js
